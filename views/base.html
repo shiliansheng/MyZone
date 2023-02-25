@@ -1,0 +1,94 @@
+<div class="tip-toast-container">
+    <div role="alert" class="toast " id="tip-toast">
+        <!-- <div class="toast-header">
+            <strong class="mr-auto">提示</strong>
+            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast"><span>&times;</span></button>
+        </div> -->
+        <div class="toast-body">
+        </div>
+    </div>
+</div>
+
+<div class="page-side-kit-container">
+    <div class="video-kit-list">
+        <button class="kit-item" data-toggle="modal" data-target="#video-player-modal"><i
+                class="bi bi-play-circle"></i></button>
+        <button class="kit-item" data-toggle="modal" data-target="#video-edit-modal"><i
+                class="bi bi-pencil"></i></button>
+    </div>
+</div>
+
+<div class="modal my-modal" id="video-player-modal" tabindex="-1">
+    <div class="my-modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header p-2">
+                <h5 class="modal-title"></h5>
+                <div class="modal-btn-list">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <button type="button" class="close" onclick="toggleVideoModal()"><i
+                            class="bi bi-plus-lg"></i></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <span id="video-play-id" data-i="" hidden></span>
+                <div class="video-player-container">
+                </div>
+                <div class="video-operate-container">
+                    <div class="video-operate-kit-list kit-list">
+                        <div class="kit-item" onclick="collectVideo()"><i class="bi bi-heart"></i></div>
+                        <div class="kit-item" onclick="shootVideo()"><i class="bi bi-camera"></i></div>
+                    </div>
+                    <div class="video-list-brief" id="video-relate-list">
+                    </div>
+                    <div class="video-play-right-wrap">
+                        <div class="screenshoot-list">
+                            <!-- <div class="screenshoot-item"><img src="" alt=""></div> -->
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal my-modal" id="picture-view-modal" tabindex="-1">
+    <div class="my-modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header p-1">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <img src="" alt="" style="max-width: 100%; max-height: 100%;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<nav class="navbar navbar-expand-md navbar-light fixed-top bg-white shadow-sm py-2" id="top-nav">
+    <a class="navbar-brand font-weight-bold" href="#"></a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item" data-n="home">
+                <a class="nav-link" href="/">主页</a>
+            </li>
+            <li class="nav-item" data-n="video">
+                <a class="nav-link" href="/video">视频</a>
+            </li>
+            <li class="nav-item" data-n="spider">
+                <a class="nav-link" href="/spider">爬虫</a>
+            </li>
+            <li class="nav-item" data-n="manage">
+                <a class="nav-link" href="/manage">管理</a>
+            </li>
+        </ul>
+        <form class="form-inline my-0 form-nav-search" action="/search">
+            <input class="form-control" type="text" placeholder="输入待查询内容..." name="s">
+            <button class="btn btn-primary" type="submit">查询</button>
+        </form>
+    </div>
+</nav>

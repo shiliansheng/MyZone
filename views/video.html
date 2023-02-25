@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/lib/bootstrap-4.6.2-dist/css/bootstrap.min.css">
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css"> -->
+    <link rel="stylesheet" href="/static/lib/bootstrap-icons-1.10.3/bootstrap-icons.css">
+    <link rel="stylesheet" href="../static/lib/video.js/video-js.min.css" />
+    <link rel="stylesheet" href="../static/lib/video.js/videojs.theaterMode.css" />
+    <link rel="stylesheet" href="/static/css/init.css">
+    <link rel="stylesheet" href="/static/css/all.css">
+
+    <title>视频列表</title>
+</head>
+
+<body>
+    <p hidden active-module="{{.Module}}" active-category="{{.Category}}" id="active-note"></p>
+    <div class="modal my-modal" id="video-edit-modal" tabindex="-1" style="display: block1;">
+        <div class="my-modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">视频信息编辑<h5>
+                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body d-flex">
+                    <div class="video-form-container">
+                        <form id="videoinfo-form" action="/video.json" method="post" onsubmit="return false;">
+                            <input type="text" hidden name="id" required>
+                            <div class="form-group">
+                                <label>视频名称</label>
+                                <input type="text" class="form-control" name="title" placeholder="视频名称" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="d-block">视频类型</label>
+                                <div class="custom-control custom-radio custom-control-inline">
+                                    <input type="radio" value="0" id="category-0" name="category"
+                                        class="custom-control-input">
+                                    <label class="custom-control-label" for="category-0">无</label>
+                                </div>
+                                {{range .Categorys}}
+                                <div class="custom-control custom-radio custom-control-inline">
+                                    <input type="radio" value="{{.Id}}" id="category-{{.Id}}" name="category"
+                                        class="custom-control-input">
+                                    <label class="custom-control-label" for="category-{{.Id}}">{{.Title}}</label>
+                                </div>
+                                {{end}}
+                            </div>
+                            <div class="form-group">
+                                <label>视频地址(相对于static地址)</label>
+                                <input type="text" class="form-control" name="path"
+                                    placeholder="输入视频地址，如：./static/video/xxx.mp4" required>
+                            </div>
+                            <div class="form-group">
+                                <label>视频封面</label>
+                                <div class="input-group mb-2">
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" id="localFile" name="cover_local">
+                                        <label class="custom-file-label" for="localFile">选择本地文件</label>
+                                    </div>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-info" type="button"
+                                            onclick="uploadLocalCover()">上传封面</button>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <input type="text" class="form-control col-auto" id="spider-title"
+                                        placeholder="输入标题或网络地址">
+                                    <div class="input-group-append">
+                                        <select class="custom-select" id="spider-base-url">
+                                            <option value="https://www.seejav.pw/?javbus">选择基网址</option>
+                                            <option value="https://www.seejav.pw/?javbus">seejav</option>
+                                            <option value="https://www.javbus.com/?javbus">javbus</option>
+                                            <option value="https://www2.javdock.com/video/?javdoe">javdoe</option>
+                                            <option value="https://www2.javhdporn.net/video/?javporn">javporn</option>
+                                            <option value="web?web">网络地址</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-info" type="button" onclick="spiderCover()">爬取封面</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>视频标签</label>
+                                <input type="text" class="form-control" hidden name="tagid">
+                                <div class="tag-input-wrap tag-list" data-n="tag" id="tag-input-tag">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>演员列表</label>
+                                <input type="text" class="form-control" hidden name="actorid">
+                                <div class="tag-input-wrap tag-list" data-n="actor" id="tag-input-actor">
+                                </div>
+                            </div>
+                            <div class="form-group text-center">
+                                <button type="submit" class="btn btn-primary" onclick="videoinfoEditSubmit()">提交</button>
+                                <button type="reset" class="btn btn-primary" id="vbaseinfo-submit">重置</button>
+                                <button type="submit" class="btn btn-primary" id="vbaseinfo-submit"
+                                    onclick="videoEditZoom(-1)">上一个</button>
+                                <button type="submit" class="btn btn-primary" id="vbaseinfo-submit"
+                                    onclick="videoEditZoom(1)">下一个</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="video-other-info">
+                        <div class="video-info-piece">视频ID：<span class="video-info-id"></span></div>
+                        <div class="video-info-piece">
+                            <span>视频封面预览：</span>
+                            <div class="video-cover">
+                                <img class="click-view-pic" src="" alt="">
+                            </div>
+                        </div>
+                        <div class="video-info-piece">
+                            <ul class="nav nav-pills mb-1">
+                                <li class="nav-item mr-3">
+                                    <button class="btn btn-outline-primary active" data-toggle="pill"
+                                        data-target="#pills-tag" type="button">标签</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="btn btn-outline-primary" data-toggle="pill" data-target="#pills-actor"
+                                        type="button">演员</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="pills-tag">
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control col-auto" id="tag-add-input"
+                                            placeholder="输入待添加标签">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-info" type="button" onclick="addTag('tag')">添加</button>
+                                        </div>
+                                    </div>
+                                    <div class="tag-list tag-select-list" id="tag-select-list-tag">
+                                        <div class="to-down-kit" data-target="#tag-select-list-tag"><i
+                                                class="bi bi-arrow-down-circle"></i></div>
+                                        <div class="to-top-kit" data-target="#tag-select-list-tag"><i
+                                                class="bi bi-arrow-up-circle"></i></div>
+                                        {{range .TagList}}
+                                        <div class="tag-item" onclick="selecttagTag({{.Id}})" data-i="{{.Id}}">
+                                            {{.Name}}</div>
+                                        {{end}}
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="pills-actor">
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control col-auto" id="actor-add-input"
+                                            placeholder="输入待添加演员">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-info" type="button" onclick="addTag('actor')">添加</button>
+                                        </div>
+                                    </div>
+                                    <div class="tag-list tag-select-list" id="tag-select-list-actor">
+                                        <div class="to-down-kit" data-target="#tag-select-list-actor"><i
+                                                class="bi bi-arrow-down-circle"></i></div>
+                                        <div class="to-top-kit" data-target="#tag-select-list-actor"><i
+                                                class="bi bi-arrow-up-circle"></i></div>
+                                        {{range .ActorList}}
+                                        <div class="tag-item" onclick="selectactorTag({{.Id}})" data-i="{{.Id}}">
+                                            {{.Name}}</div>
+                                        {{end}}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{template "base.html" .}}
+    <div class="video-page">
+        <aside class="lside-subnav" id="lside-nav">
+            <a href="/video" class="subnav-item" data-i="0">未分类</a>
+            <a href="/video/all" class="subnav-item" data-i="all">全部</a>
+            <a href="/video/collect" class="subnav-item" data-i="collect">收藏</a>
+            {{range .Categorys}}
+            <a href="/video/{{.Id}}" class="subnav-item" data-i="{{.Id}}">{{.Title}}</a>
+            {{end}}
+        </aside>
+        <main class="pt-3 exclude-lside-nav exclude-top-nav pb-5">
+            <div class="video-list-container">
+                <div class="video-list">
+                    {{range .Videos}}
+                    <div class="video-item" data-i="{{.Id}}">
+                        <div class="kit-list">
+                            <!-- <div class="kit-item"><i class="bi bi-heart"></i></div> -->
+                            <div class="kit-item" onclick="editVideoByModal({{.Id}})"><i
+                                    class="bi bi-pencil-square"></i></div>
+                            <div class="kit-item" onclick="deleteVideo({{.Id}})"><i class="bi bi-trash"></i></div>
+                        </div>
+                        <a onclick="playVideoByModal({{.Id}})" class="video-cover">
+                            <img src="{{.Cover}}" lazyload="on" alt="">
+                            <span class="video-duration">{{.Duration}}</span>
+                            <span class="video-category">{{.CategoryTitle}}</span>
+                        </a>
+                        <div class="video-item-info">
+                            <a onclick="playVideoByModal({{.Id}})" class="video-title">{{.Title}}</a>
+                            <div class="video-details">
+                                <i class="bi bi-eye"></i> {{.View}}&ensp;&ensp;<i class="bi bi-heart"></i>
+                                {{.Collect}}&emsp;&emsp;<i class="bi bi-clock"></i>
+                                {{.Pubtime}}
+                            </div>
+                            <div class="tag-list">
+                                {{range .Actors}}
+                                <a href="/actor?id={{.Id}}" class="tag-item">{{.Name}}</a>
+                                {{end}}
+                                {{range .Tags}}
+                                <a href="/tag?id={{.Id}}" class="tag-item">{{.Name}}</a>
+                                {{end}}
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+
+        </main>
+        <nav class="pagination my-page">
+            <div class="pagination-wrap">
+                {{str2html .Pager}}
+            </div>
+        </nav>
+        <div class="page-side-tag-container">
+            <h5>标签列表</h5>
+            <div class="tag-list mb-2">
+                {{range .TagList}}
+                <a class="tag-item" target="_blank" href="/tag?id={{.Id}}">{{.Name}}</a>
+                {{end}}
+            </div>
+            <div class="d-flex mb-1"><h5 class="d-block mr-auto">演员列表</h5><input class="form-control small-input" onclick="select();" type="text" name="" id="actor-filter-input"></div>
+            <div class="tag-list" id="side-list-actor">
+                {{range .ActorList}}
+                <a class="tag-item" target="_blank" href="/actor?id={{.Id}}">{{.Name}}</a>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/lib/jquery-3.6.0.min.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" crossorigin="anonymous"></script> -->
+    <!-- <script src="/static/lib/bootstrap-4.6.2-dist/js/" crossorigin="anonymous"></script> -->
+    <script src="/static/lib/bootstrap-4.6.2-dist/js/bootstrap.min.js"></script>
+    <script src="/static/lib/bs-custom-file-input.min.js"></script>
+    <script src="/static/lib/video.js/video.min.js"></script>
+    <script src="/static/lib/video.js/videojs.hotkeys.min.js"></script>
+    <script src="/static/lib/video.js/videojs.theaterMode.js"></script>
+    <script src="/static/js/all.js"></script>
+</body>
+
+</html>

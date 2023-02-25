@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>色花堂 SPIDER</title>
+    <link rel="stylesheet" href="/static/lib/bootstrap-4.6.2-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/init.css">
+    <link rel="stylesheet" href="/static/css/all.css">
+</head>
+
+<body>
+    <p hidden active-module="spider" active-category="sht" id="active-note"></p>
+    {{template "base.html" .}}
+    {{template "spider/sidenav.html" .}}
+    <div class="spider-page">
+        <main class="exclude-lside-nav exclude-top-nav pt-3">
+            <div class="spider-container" id="spider-sht">
+                <div class="spider-content">
+                    <div class="spider-operate">
+                        <div class="spider-control">
+                            <h4>参数面板</h4>
+                            <form id="spider-sht-form">
+                                <div class="input-group my-2">
+                                    <div class="input-group-prepend mw-200">
+                                        <span class="input-group-text">模&emsp;块</span>
+                                    </div>
+                                    <select class="custom-select dynamic-select" name="section" data-f="sht-typeid">
+                                        <option value="0" selected>选择模块...</option>
+                                        <option value="2">国内</option>
+                                        <option value="36">亚洲无码</option>
+                                        <option value="37">亚洲有码</option>
+                                    </select>
+                                </div>
+                                <div class="input-group mb-2">
+                                    <div class="input-group-prepend mw-200">
+                                        <span class="input-group-text">天&emsp;数</span>
+                                    </div>
+                                    <input type="text" class="form-control" placeholder="请输入天数..." name="day">
+                                </div>
+                                <div class="input-group mb-2">
+                                    <div class="input-group-prepend mw-200">
+                                        <span class="input-group-text">类型ID</span>
+                                    </div>
+                                    <select class="custom-select" name="typeid" id="sht-typeid">
+                                        <option value="0" selected>选择类型ID...</option>
+                                        <option value="684" data-f="2">无码</option>
+                                        <option value="685" data-f="2">主播</option>
+                                        <option value="368" data-f="36">FC2</option>
+                                        <option value="672" data-f="36">无码破解</option>
+                                        <option value="654" data-f="36">无码流出</option>
+                                    </select>
+                                </div>
+                                <div class="btn-group ml-auto" role="group" aria-label="Basic example">
+                                    <button type="button" class="btn btn-primary"
+                                        onclick="spiderShtSubmit()">开始</button>
+                                    <button type="button" class="btn btn-primary">暂停</button>
+                                    <button type="reset" class="btn btn-primary">重置</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="spider-msg-list">
+                        </div>
+                    </div>
+                    <div class="spider-overview">
+                        <span>当前耗时</span><span>a</span>
+                        <span>总用时</span><span>b</span>
+                        <span>记录总数</span><span id="result-piece-count">0</span>
+                    </div>
+                    <div class="spider-result">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th scope="col">ID</th>
+                                    <th scope="col">名称</th>
+                                    <th scope="col" class="th-link">链接</th>
+                                    <th scope="col" class="th-number">访问数</th>
+                                    <th scope="col" class="th-datetime">爬取时间</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/static/lib/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" crossorigin="anonymous"></script>
+    <script src="/static/lib/bootstrap-4.6.2-dist/js/bootstrap.min.js"></script>
+    <script src="/static/js/all.js"></script>
+</body>
+
+</html>
