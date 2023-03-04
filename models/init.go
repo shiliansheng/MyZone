@@ -18,6 +18,7 @@ var (
 	videoUpdatePath  string
 	videoStorePath   string
 	CategoryIdMTitle map[int]string
+	ScreenshootList  []Screenshot
 )
 
 const (
@@ -93,11 +94,13 @@ func init() {
 	}
 
 	// 注册模型 new Model()
-	orm.RegisterModel(new(Video), new(Category), new(Actor), new(Tag), new(Spider))
+	orm.RegisterModel(new(Video), new(Category), new(Actor), new(Tag), new(Spider), new(Record))
 
 	Orm = orm.NewOrm()
 
 	new(Category).SetMap()
+
+	SetScreenshotList(&ScreenshootList)
 	// new(Video).SetDuration()
 }
 

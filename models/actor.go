@@ -104,14 +104,20 @@ func (m Actor) GetActorId(name string) int {
 }
 
 
-func (this Actor) GetNoVideoActor() {
+func (this Actor) GetNoVideoActor() RespData{
 	log.Println("[GET NO VIDEO ACTOR LIST]")
+	resp := NewRespData()
 	actors := []Actor{}
+	novActors := []Actor{}
 	Orm.QueryTable(this.TableName()).All(&actors)
 	for _, actor := range actors {
 		count, _ := Orm.QueryTable(new(Video).TableName()).Filter("state", VALID).Filter("actorid__contains", fmt.Sprintf("\"%d\"", actor.Id)).Count()
 		if count == 0 {
-			log.Printf("%3d %s\n", actor.Id, actor.Name)
+			// log.Printf("%3d %s\n", actor.Id, actor.Name)
+			novActors = append(novActors, actor)
 		}
 	}
+	resp.Data = novActors
+	resp.Code = SUCCESS
+	return *resp
 }

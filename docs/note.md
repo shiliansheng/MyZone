@@ -55,6 +55,30 @@ box-shadow: 0 8px 12px rgba(255, 255, 255, 0.3);
 background: rgba(255, 255, 255, 0.5);
 ```
 
+### 文本省略
+
+单行省略
+```css
+.title {
+	width: 100px;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
+}
+```
+多行省略
+```css
+.title {
+	width: 100px;
+    word-break: break-all;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2; /* 这里是超出几行省略 */
+}
+```
+
 ## 三、JS
 
 ### AJAX 加载 HTML 页面
@@ -148,6 +172,15 @@ while (n--) {
 let bdata = new Blob([u8arr], { type: mime });
 ```
 
+### 设置checkbox
+```js
+$('#checkboxId').prop('checked', true)
+$('#checkboxId').prop('checked', false)
+if ($('#checkedboxId').is('checked')) {
+	// do something
+}
+```
+
 ## 四、MYSQL
 
 ### 查找排序顺序错乱问题
@@ -159,4 +192,12 @@ SQL 语句为：
 ```sql
 SELECT id,word,nature,weight,order_num FROM unlp_hot_dictionary ORDER BY order_num, id DESC LIMIT 0,10;
 SELECT id,word,nature,weight,order_num FROM unlp_hot_dictionary ORDER BY order_num, id DESC LIMIT 10,10;
+```
+
+## 五、HTML
+
+### Chrome 图片懒加载
+
+```html
+<img src="#" lazyload="on">
 ```

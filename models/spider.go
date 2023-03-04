@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/beego/beego/v2/client/orm"
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/chromedp"
 )
@@ -219,22 +220,55 @@ func (this Spider) GetSpiderList(page, limit, mod, section, category int, filter
 	resp := NewRespData()
 	log.Println("[SPIDER LIST] module[", mod, "] section[", section, "] category[", category, "] page[", page, "] limit[", limit, "]")
 	spiders := []Spider{}
+	// if len(filter) != 0 && filter[0] != "" {
+	// 	fstrs := strings.Split(filter[0], " ")
+	// 	fstr := ""
+	// 	for _, s := range fstrs {
+	// 		fstr += s + "|"
+	// 	}
+	// 	fstr = fstr[:len(fstr)-1]
+	// 	seter := Orm.Raw("SELECT * FROM `spider` WHERE title REGEXP ? limit ? offset ?", fstr, limit, limit*(page-1))
+	// 	count, err := seter.QueryRows(&spiders)
+	// 	if err != nil {
+	// 		resp.Msg = fmt.Sprint("filter spider failed:", err)
+	// 		log.Println(resp.Msg)
+	// 		return *resp
+	// 	}
+	// 	resp.Count = int(count)
+	// 	resp.Data = spiders
+	// 	resp.Code = SUCCESS
+	// 	return *resp
+	// }
+	cond := orm.NewCondition()
 	seter := Orm.QueryTable(this.TableName())
 	if mod == SPIDER_MODULE_SHT {
 		if section != SHT_SECTION_DEFAULT {
-			seter = seter.Filter("section", section)
+			cond = cond.And("section", section)
+			// seter = seter.Filter("section", section)
 		}
 		if category != SHT_TYPE_DEFAILT {
-			seter = seter.Filter("category", category)
+			cond = cond.And("category", category)
+			// seter = seter.Filter("category", category)
 		}
 	}
 	if len(filter) != 0 && filter[0] != "" {
-		seter = seter.Filter("title__icontains", filter)
+		// fstr := strings.ReplaceAll(filter[0], " ", "%")
+		// seter = seter.Filter("title", fstr)
+		fstrs := strings.Split(filter[0], " ")
+		cond = cond.And("title__icontains", filter[0])
+		// fstr := ""
+		for _, s := range fstrs {
+			// fstr += s + "|"
+			cond = cond.Or("title__icontains", s)
+		}
+		// cond = cond.Raw("REGEXP ?", fstr)
+		
 	}
+	seter = seter.SetCond(cond)
+	seter = seter.Distinct()
 	seter = seter.OrderBy("-id")
 	count, _ := seter.Count()
 	seter = seter.Limit(limit, (page-1)*limit)
-
 	if _, err := seter.All(&spiders); err != nil {
 		resp.Error = err
 		resp.Msg = fmt.Sprint("[ERROR]", err)

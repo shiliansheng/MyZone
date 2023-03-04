@@ -106,3 +106,17 @@ CREATE TABLE `spider`(
     `preid`    int NOT NULL DEFAULT '0',
     PRIMARY KEY(id)
 )ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT COMMENT="爬虫表";
+
+DROP TABLE IF EXISTS `record`;
+CREATE TABLE `record`(
+    `id`       int AUTO_INCREMENT NOT NULL,
+	`title`    varchar(256) NOT NULL DEFAULT '',
+	`detail`    varchar(256) DEFAULT '',
+	`category` int DEFAULT '0',
+    `top`       int default '0',
+    `content` varchar(2048) DEFAULT '',
+	`addtime`  datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`deltime`  varchar(32) DEFAULT '',
+    `state` int NOT NULL DEFAULT '0' COMMENT'0:valid,1:invalid',
+    PRIMARY KEY(id)
+)ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT COMMENT="记录表";

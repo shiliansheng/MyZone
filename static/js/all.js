@@ -13,7 +13,7 @@ var $videoPlayControl = `<video src="/static/video/青梅竹马.mp4" controls id
     playVideoId,
     player,
     screenshootIdx = 0,
-    screenhootMapBlob = new Map(),
+    screenhootMapFile = new Map(),
     spiderLimit = 10,
     spiderPageThreshold = 10;;
 
@@ -29,6 +29,16 @@ function ajaxFunc(url, type, data, success) {
         success: success,
     })
 }
+
+function showTipToast(msg, time, mode) {
+    if (time == undefined) {
+        time = 5
+    }
+    $(`#tip-toast`).attr('data-delay', time * 1000)
+    $(`#tip-toast .toast-body`).html(msg)
+    $('#tip-toast').toast('show')
+}
+
 $(function () {
     // set nav item active
     try {
@@ -106,7 +116,9 @@ $(function () {
     })
 
     $('#video-player-modal').on('hide.bs.modal', function (event) {
-        player.pause()
+        try {
+            player.pause()
+        } catch { }
         $('#video-player-modal').removeClass('large-modal')
     })
 
@@ -129,7 +141,102 @@ $(function () {
         $('#picture-view-modal img').attr('src', $(this).attr('src'))
         $('#picture-view-modal').modal('show')
     })
+
+    $('#record-page .category-item').click(function () {
+        $('#record-page [name=record-show]').attr("checked", false)
+        if ($(this).hasClass('active')) {
+            return
+        }
+        $('#record-page .category-item').removeClass('active')
+        $(this).addClass('active')
+        let category = $(this).attr('data-i');
+        ajaxFunc("/record.json", "GET", { id: category, action: "category" }, function (res) {
+            if (res.code != 0) showTipToast(res.msg)
+            else setRecordList(res)
+        })
+    })
 })
+
+/****************************************
+ *                                      *
+ *               VIDEO                  *
+ *                                      *
+*****************************************/
+
+function getVideoRecommendList(aim) {
+    let nowdate = new Date().toLocaleDateString().replaceAll("/", "-"),
+        dataDate = $('#video-recommend-list').attr('data-d'),
+        date = nowdate;
+    if (dataDate == "") {
+        dataDate = nowdate;
+    }
+    if (dataDate == nowdate && aim == "post") {
+        return
+    }
+    let t = new Date(dataDate);
+    switch (aim) {
+        case 'pre':
+            t.setDate(t.getDate() - 1)
+            date = t.toLocaleDateString().replaceAll("/", "-");
+            break;
+        case 'post':
+            t.setDate(t.getDate() + 1)
+            date = t.toLocaleDateString().replaceAll("/", "-");
+            break;
+        case 'refresh':
+            break;
+    }
+    dataDate = date
+    let strarr = date.split('-');
+    for (let i = 1; i < 3; i++) {
+        let num = parseInt(strarr[i])
+        if (num <= 9) strarr[i] = '0' + num;
+    }
+    date = strarr[0] + '-' + strarr[1] + '-' + strarr[2]
+    ajaxFunc(`video.json`, "POST", { action: "recommendlist", aim: aim, date: date }, function (res) {
+        if (res.code == 0) {
+            let $list = $('#video-recommend-list .video-list');
+            $list.empty();
+            for (let v of res.data) {
+                let tagstr = '';
+                if (v.actors != null) {
+                    for (let t of v.actors) {
+                        tagstr += `<a href="/actor?id=${t.id}" class="tag-item">${t.name}</a>`
+                    }
+                }
+                if (v.tags != null) {
+                    for (let t of v.tags) {
+                        tagstr += `<a href="/tag?id=${t.id}" class="tag-item">${t.name}</a>`
+                    }
+                }
+                $list.append(`
+                    <div class="video-item">
+                        <a onclick="playVideoByModal(${v.id})" class="video-cover">
+                            <img src="${v.cover}" lazyload="on" alt="">
+                            <span class="video-duration">${v.duration}</span>
+                            <span class="video-category">${v.actegorytitle}</span>
+                        </a>
+                        <div class="video-item-info">
+                            <a onclick="playVideoByModal(${v.id})" class="video-title" alt="${v.title}">${v.title}</a>
+                            <div class="video-details">
+                                <i class="bi bi-eye"></i> ${v.view}&ensp;&ensp;<i class="bi bi-heart"></i>
+                                ${v.collect}&emsp;&emsp;<i class="bi bi-clock"></i>
+                                ${v.pubtime}
+                            </div>
+                            <div class="video-tags">
+                                ${tagstr}
+                            </div>
+                        </div>
+                    </div>
+                `)
+            }
+        }
+        if (aim != "refresh") {
+            $('#video-recommend-list').attr('data-d', dataDate);
+            $('#video-recommend-list .list-date').html(date);
+        }
+    })
+}
 
 var configVideo = function (path, cover, id, timenodes) {
     if (id == playVideoId) {
@@ -209,7 +316,15 @@ function playVideoByModal(id) {
             configVideo(res.data.path, res.data.cover, res.data.id, res.data.timenodes)
             for (let v of res.data.relateVideos) {
                 $("#video-player-modal #video-relate-list").append(
-                    `<a onclick="playVideoByModal(${v.id})" class="video-item"><div class="video-cover"><img src="${v.cover}"><div class="video-title">${v.title}</div></div></a>`)
+                    `<a onclick="playVideoByModal(${v.id})" class="video-item"><div class="video-cover"><img src="${v.cover}"><div class="video-title">${v.title}</div><div class="video-duration">${v.duration}</div></div></a>`)
+            }
+            for (let sc of res.data.screenshoots) {
+                screenshootIdx++
+                $('.screenshoot-list').append(`<div class="screenshoot-item" data-i="${screenshootIdx}"><img class="click-view-pic" src="${sc.path}" alt=""></div>`)
+                $('.click-view-pic').click(function () {
+                    $('#picture-view-modal img').attr('src', $(this).attr('src'))
+                    $('#picture-view-modal').modal('show')
+                })
             }
         }
     })
@@ -305,110 +420,6 @@ function videoinfoEditSubmit() {
     ajaxFunc('/video.json', 'POST', data, function (res) {
         showTipToast(`修改视频[ ${$('#video-edit-modal input[name=id]').val()} ]内容成功！`)
     })
-}
-
-function categoryAddSubmit() {
-    ajaxFunc('/category.json', 'POST', $('#category-form').serialize(), function (res) {
-        showTipToast('添加成功')
-    })
-}
-
-function uploadLocalCover() {
-    let id = $('#video-edit-modal input[name=id]').val(),
-        files = $("#localFile").prop('files'),
-        formdata = new FormData();
-    if (id == undefined || id == "" || files.length == 0) {
-        showTipToast(`<span class="bg-warn">当前视频表单所需内容为空</span>`)
-        return
-    }
-    formdata.append("file", files[0]);
-    formdata.append("action", "cover");
-    formdata.append("id", id);
-    $.ajax({
-        url: "/video.json"
-        , type: "POST"
-        , data: formdata
-        , processData: false // 告诉jQuery不要去处理发送的数据
-        , contentType: false // 告诉jQuery不要去设置Content-Type请求头
-        , async: false
-        , dataType: "json"
-        , success: function (res) {
-            showTipToast(res.msg)
-            if (res.code == 0) {
-                $(`#video-edit-modal .video-cover img`).attr('src', res.data);
-                $(`.video-list .video-item[data-i=${id}] .video-cover img`).attr('src', res.data);
-            }
-        }
-    })
-}
-
-function spiderCover() {
-    var title = $('#video-edit-modal #spider-title').val(),
-        baseurl = $('#video-edit-modal #spider-base-url').val(),
-        baseIdx = baseurl.lastIndexOf('?'),
-        id = $('#video-edit-modal input[name=id]').val(),
-        spiderTarget = baseurl.substr(baseIdx + 1),
-        action = "cover";
-    let url = baseurl.substr(0, baseIdx) + title;
-    if (spiderTarget == "web") {
-        url = title;
-        action = "coverdownload"
-    }
-    if (spiderTarget == "javdoe" || spiderTarget == "javporn") {
-        url = url + "/"
-    }
-    console.log('spider cover from url:', url)
-    ajaxFunc('/spidervinfo.json', 'GET', {
-        id: id,
-        url: url,
-        action: action,
-        target: spiderTarget,
-    }, function (res) {
-        if (res.code == 0) {
-            showTipToast('爬取信息成功！')
-            // $('#video-edit-modal input[name=cover_network]').val(res.data)
-            $('#video-edit-modal .video-cover img').attr('src', res.data)
-            $(`.video-list .video-item[data-i=${id}] .video-cover img`).attr('src', res.data);
-        } else {
-            showTipToast(res.msg)
-        }
-    })
-}
-
-function showTipToast(msg, time, mode) {
-    if (time == undefined) {
-        time = 5
-    }
-    $(`#tip-toast`).attr('data-delay', time * 1000)
-    $(`#tip-toast .toast-body`).html(msg)
-    $('#tip-toast').toast('show')
-}
-
-
-function VideoCoverSpider() {
-    var $msgList = $('#video-spider-pane .msg-list').eq(0),
-        $spiderAllCount = $('.spider-all-count').eq(0),
-        $spiderSuccessCount = $('.spider-success-count').eq(0),
-        $spiderFailCount = $('.spider-fail-count').eq(0);
-
-    socket = new WebSocket('ws://' + window.location.host + '/spidervideocover');
-    // Message received on the socket
-    socket.onmessage = function (event) {
-        var data = JSON.parse(event.data);
-        $spiderAllCount.html(parseInt($spiderAllCount.html()) + 1)
-        $msgList.append(`<div class="msg-item"><span class="msg-time">${data.time}</span><div class="msg-content">${data.msg}</div></div>`)
-        $msgList.scrollTop($msgList.prop("scrollHeight"))
-        switch (data.code) {
-            case 0: // SUCCESS
-                $spiderSuccessCount.html(parseInt($spiderSuccessCount.html()) + 1)
-                break;
-            case 1: // FAILED
-                $spiderFailCount.html(parseInt($spiderFailCount.html()) + 1)
-                break;
-            case 2: // MESSAGE
-                break;
-        }
-    };
 }
 
 function videoEditZoom(offset) {
@@ -522,11 +533,100 @@ function collectVideo() {
     })
 }
 
+function uploadLocalCover() {
+    let id = $('#video-edit-modal input[name=id]').val(),
+        files = $("#localFile").prop('files'),
+        formdata = new FormData();
+    if (id == undefined || id == "" || files.length == 0) {
+        showTipToast(`<span class="bg-warn">当前视频表单所需内容为空</span>`)
+        return
+    }
+    formdata.append("file", files[0]);
+    formdata.append("action", "cover");
+    formdata.append("id", id);
+    $.ajax({
+        url: "/video.json"
+        , type: "POST"
+        , data: formdata
+        , processData: false // 告诉jQuery不要去处理发送的数据
+        , contentType: false // 告诉jQuery不要去设置Content-Type请求头
+        , async: false
+        , dataType: "json"
+        , success: function (res) {
+            showTipToast(res.msg)
+            if (res.code == 0) {
+                $(`#video-edit-modal .video-cover img`).attr('src', res.data);
+                $(`.video-list .video-item[data-i=${id}] .video-cover img`).attr('src', res.data);
+            }
+        }
+    })
+}
+
+function spiderCover() {
+    var title = $('#video-edit-modal #spider-title').val(),
+        baseurl = $('#video-edit-modal #spider-base-url').val(),
+        baseIdx = baseurl.lastIndexOf('?'),
+        id = $('#video-edit-modal input[name=id]').val(),
+        spiderTarget = baseurl.substr(baseIdx + 1),
+        action = "cover";
+    let url = baseurl.substr(0, baseIdx) + title;
+    if (spiderTarget == "web") {
+        url = title;
+        action = "coverdownload"
+    }
+    if (spiderTarget == "javdoe" || spiderTarget == "javporn") {
+        url = url + "/"
+    }
+    console.log('spider cover from url:', url)
+    ajaxFunc('/spidervinfo.json', 'GET', {
+        id: id,
+        url: url,
+        action: action,
+        target: spiderTarget,
+    }, function (res) {
+        if (res.code == 0) {
+            showTipToast('爬取信息成功！')
+            // $('#video-edit-modal input[name=cover_network]').val(res.data)
+            $('#video-edit-modal .video-cover img').attr('src', res.data)
+            $(`.video-list .video-item[data-i=${id}] .video-cover img`).attr('src', res.data);
+        } else {
+            showTipToast(res.msg)
+        }
+    })
+}
+
+function VideoCoverSpider() {
+    var $msgList = $('#video-spider-pane .msg-list').eq(0),
+        $spiderAllCount = $('.spider-all-count').eq(0),
+        $spiderSuccessCount = $('.spider-success-count').eq(0),
+        $spiderFailCount = $('.spider-fail-count').eq(0);
+
+    socket = new WebSocket('ws://' + window.location.host + '/spidervideocover');
+    // Message received on the socket
+    socket.onmessage = function (event) {
+        var data = JSON.parse(event.data);
+        $spiderAllCount.html(parseInt($spiderAllCount.html()) + 1)
+        $msgList.append(`<div class="msg-item"><span class="msg-time">${data.time}</span><div class="msg-content">${data.msg}</div></div>`)
+        $msgList.scrollTop($msgList.prop("scrollHeight"))
+        switch (data.code) {
+            case 0: // SUCCESS
+                $spiderSuccessCount.html(parseInt($spiderSuccessCount.html()) + 1)
+                break;
+            case 1: // FAILED
+                $spiderFailCount.html(parseInt($spiderFailCount.html()) + 1)
+                break;
+            case 2: // MESSAGE
+                break;
+        }
+    };
+}
+
 function shootVideo() {
     const video = document.querySelector('#video-player_html5_api'),
         scale = 1;
     var time = player.currentTime(),
-        id = $("#video-play-id").attr("data-i");
+        id = $("#video-play-id").attr("data-i"),
+        vname = $('#video-player-modal .modal-title').html();
     var canvas = document.createElement("canvas");
     canvas.width = video.videoWidth * scale;
     canvas.height = video.videoHeight * scale;
@@ -548,45 +648,49 @@ function shootVideo() {
     }
     let blob = new Blob([u8arr], { type: mime });
     screenshootIdx++;
-    screenhootMapBlob[screenshootIdx] = blob;
+    const file = new File([blob], `[${id}][${vname}]${time}.png`, { type: mime });
+    screenhootMapFile[screenshootIdx] = file;
     $('.screenshoot-list').append(
-        `<div class="screenshoot-item" data-i="${screenshootIdx}" data-id="${id}" data-time="${time}"><img class="click-view-pic" src="${URL.createObjectURL(blob)}" alt="">
+        `<div class="screenshoot-item" data-i="${screenshootIdx}"><img class="click-view-pic" src="${URL.createObjectURL(blob)}" alt="">
             <div class="kit-list">
                 <div class="kit-item" onclick="deleteScreenshoot(${screenshootIdx})"><i class="bi bi-trash"></i></div>
-                <div class="kit-item" onclick="addVideoTimeNode(${screenshootIdx})"><i class="bi bi-plus-circle"></i></div>
                 <div class="kit-item"><i class="bi bi-cloud-download" onclick="downloadScreenshoot(${screenshootIdx})"></i></div>
             </div>
         </div>`)
     $('.click-view-pic').click(function () {
-        console.log($(this).attr('src'))
         $('#picture-view-modal img').attr('src', $(this).attr('src'))
         $('#picture-view-modal').modal('show')
     })
 }
 
-function addVideoTimeNode(idx) {
-    let id = $(`.screenshoot-list .screenshoot-item[data-i=${idx}]`).attr('data-id'),
-        time = $(`.screenshoot-list .screenshoot-item[data-i=${idx}]`).attr('data-time');
-    ajaxFunc('/video.json', "POST", { id: id, time: time, action: "time" }, function (res) {
+function addVideoTimeNode(action) {
+    let id = $("#video-play-id").attr("data-i"),
+        time = player.currentTime();
+    if (action == 'delete') action = "timedel";
+    else action = "timeadd";
+    ajaxFunc('/video.json', "POST", { id: id, time: time, action: action }, function (res) {
         showTipToast(res.msg)
         if (res.code == 0) {
             var leftPos = time * 100 / player.duration() + '%';
-            $('.vjs-progress-holder').prepend(`<div class="time-node-item bi bi-geo-alt-fill" onclick="videoPlayJumpTo(${time})" style="left: ${leftPos};"></div>`);
+            if (action == "timeadd") $('.vjs-progress-holder').prepend(`<div class="time-node-item bi bi-geo-alt-fill" onclick="videoPlayJumpTo(${time})" style="left: ${leftPos};"></div>`);
+            else $(`.time-node-item[onclick=videoPlayJumpTo(${time})]`).remove();
         }
     })
+}
+
+function changeVideoTime(sec) {
+    try {
+        player.currentTime(player.currentTime() + sec)
+    } catch { }
 }
 
 function deleteScreenshoot(idx) {
     $(`.screenshoot-list .screenshoot-item[data-i=${idx}]`).remove();
 }
 function downloadScreenshoot(idx) {
-    let id = $(`.screenshoot-list .screenshoot-item[data-i=${idx}]`).attr('data-id'),
-        time = $(`.screenshoot-list .screenshoot-item[data-i=${idx}]`).attr('data-time');
-    let blob = screenhootMapBlob[screenshootIdx];
-    const file = new File([blob], `[${id}]${time}.png`, { type: 'image/png' });
     var formdata = new FormData();
     formdata.append("belong", "screenshot")
-    formdata.append("file", file);
+    formdata.append("file", screenhootMapFile[screenshootIdx]);
     $.ajax({
         url: "/downloadfile.json"
         , type: "POST"
@@ -605,8 +709,24 @@ function downloadScreenshoot(idx) {
 
 }
 
+/****************************************
+ *                                      *
+ *              MANAGE                  *
+ *                                      *
+*****************************************/
 
-/************** SPIDER SHT ********************/
+function categoryAddSubmit() {
+    ajaxFunc('/category.json', 'POST', $('#category-form').serialize(), function (res) {
+        showTipToast('添加成功')
+    })
+}
+
+/****************************************
+ *                                      *
+ *              SPIDER                  *
+ *                                      *
+*****************************************/
+
 function spiderShtSubmit() {
     var section = $('#spider-sht-form [name=section]').val(),
         day = $('#spider-sht-form [name=day]').val(),
@@ -689,6 +809,11 @@ function getShtSpiderList(page) {
 }
 
 function setSpiderTablePage(idselect, count, page) {
+    if (count <= spiderPageThreshold) {
+        console.log(count, page)
+        $(idselect).empty();
+        return ""
+    }
     let $pagination = $(idselect),
         pageSize = parseInt(count / spiderLimit),
         pageStart = 1,
@@ -696,13 +821,15 @@ function setSpiderTablePage(idselect, count, page) {
         pageEnd = pageSize;
     $pagination.empty();
     if (pageSize % spiderLimit != 0) pageSize++;
-    if (pageSize < pageThreshold) pageThreshold = pageSize;
-    if (page <= pageThreshold / 2) {
-        pageEnd = pageStart + pageThreshold
-    } else {
-        pageStart = page - pageThreshold / 2;
-        pageEnd = pageStart + pageThreshold;
-        if (pageEnd > pageSize) pageEnd = pageSize;
+    if (pageSize <= pageThreshold) pageEnd = pageSize;
+    else {
+        if (page <= pageThreshold / 2) {
+            pageEnd = pageStart + pageThreshold
+        } else {
+            pageStart = page - pageThreshold / 2;
+            pageEnd = pageStart + pageThreshold;
+            if (pageEnd > pageSize) pageEnd = pageSize;
+        }
     }
     $pagination.append(`<a class="page-item page-link" onclick="getShtSpiderList(1)">首页</a>`)
     if (page > 1)
@@ -717,4 +844,83 @@ function setSpiderTablePage(idselect, count, page) {
     if (pageSize > 1 && page < pageSize)
         $pagination.append(`<a class="page-item page-link" onclick="getShtSpiderList(${page + 1})">NEXT</a>`);
     $pagination.append(`<a class="page-item page-link disabled" href="javascript:;">共 ${pageSize} 页</a>`)
+}
+
+
+function openAllLink() {
+    var $links = $('#sht-wrap table tbody tr td a');
+    for (let i = 0, len = $links.length; i < len; i++) {
+        window.open($links.eq(i).attr("href"))
+    }
+}
+
+/****************************************
+ *                                      *
+ *              RECORD                  *
+ *                                      *
+*****************************************/
+
+function getRecord(obj) {
+    return `<div class="record-item">
+                <input type="checkbox" name="content-show" id="record-${obj.id}">
+                <div class="item-kit">
+                    <label for="record-${obj.id}" class="kit-item content-toggle bi bi-caret-down"></label>
+                    <div class="bi bi-pencil kit-item" onclick="editRecord(${obj.id})"></div>
+                </div>
+                <div class="record-title">${obj.title}</div>
+                <div class="record-detail">${obj.detail}</div>
+                <div class="record-content">${obj.content}</div>
+            </div>`
+}
+
+function setRecordList(res) {
+    let $recList = $('#record-page .record-list');
+    $recList.empty()
+    for (let obj of res.data) {
+        $recList.append(getRecord(obj))
+    }
+}
+
+function recordFormSubmit() {
+    let id = $('#record-form [name=id]').val(),
+        action = "add";
+    if (id != "") {
+        action = "edit"
+    }
+    let data = $('#record-form').serialize();
+    data = data + `&action=${action}`
+    if ($('#record-form [name=title]').val() == "") {
+        showTipToast("所需内容为空！")
+        return
+    }
+    ajaxFunc('/record.json', 'POST', data, function (res) {
+        showTipToast(res.msg)
+        if (action == "add" && res.code == 0) {
+            $('#record-page .record-list').append(getRecord(res.data))
+        }
+        if (res.code == 0) {
+            document.getElementById('record-form').reset();
+            $('#record-form').removeClass('was-validated')
+
+        }
+    })
+}
+
+function editRecord(id) {
+    ajaxFunc("/record.json", "GET", { id: id, action: "id" }, function (res) {
+        if (res.code == 0) {
+            let str = res.data.content;
+            str = str.replaceAll('<br/>', '\n')
+            res.data.content = str.replaceAll('&ensp;', ' ')
+            $('#record-form [name=id]').val(res.data.id)
+            $('#record-form [name=title]').val(res.data.title)
+            $('#record-form [name=detail]').val(res.data.detail)
+            $('#record-form [name=content]').val(res.data.content)
+            $(`#record-form [name=category][value=${res.data.category}]`).attr("checked", "checked")
+            $('#record-form [name=top]').attr('checked', res.data.top)
+            $('#record-page [name=record-show]').prop("checked", true)
+        } else {
+            showTipToast(res.msg)
+        }
+    })
 }

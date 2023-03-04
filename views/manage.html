@@ -7,7 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Page</title>
     <link rel="stylesheet" href="/static/lib/bootstrap-4.6.2-dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/lib/bootstrap-icons-1.10.3/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/lib/video.js/video-js.min.css" />
+    <link rel="stylesheet" href="/static/lib/video.js/videojs.theaterMode.css" />
     <link rel="stylesheet" href="/static/css/init.css">
     <link rel="stylesheet" href="/static/css/all.css">
 </head>
@@ -16,12 +18,12 @@
     <p hidden active-module="{{.Module}}" active-category="{{.Category}}" id="active-note"></p>
     {{template "base.html" .}}
     <aside class="lside-subnav nav flex-column">
-            <a class="subnav-item active" id="home-tab" data-toggle="pill" href="#home-pane" role="tab">总览</a>
-            <a class="subnav-item" id="category-tab" data-toggle="pill" href="#category-pane" role="tab">类型管理</a>
-            <a class="subnav-item" id="serial-tab" data-toggle="pill" href="#serial-pane" role="tab">视频系列添加</a>
-            <a class="subnav-item" id="change-tab" data-toggle="pill" href="#change-pane" role="tab">待修改</a>
-            <a class="subnav-item" id="video-spider-tab" data-toggle="pill" href="#video-spider-pane"
-                role="tab">视频爬取</a>
+        <a class="subnav-item active" id="home-tab" data-toggle="pill" href="#home-pane" role="tab">总览</a>
+        <a class="subnav-item" id="category-tab" data-toggle="pill" href="#category-pane" role="tab">类型管理</a>
+        <a class="subnav-item" id="tag-tab" data-toggle="pill" href="#tag-pane" role="tab">标签管理</a>
+        <a class="subnav-item" id="change-tab" data-toggle="pill" href="#change-pane" role="tab">待修改</a>
+        <a class="subnav-item" id="video-spider-tab" data-toggle="pill" href="#video-spider-pane" role="tab">视频爬取</a>
+        <a class="subnav-item" id="video-control-tab" data-toggle="pill" href="#video-control-pane" role="tab">视频控制</a>
     </aside>
     <main class="exclude-top-nav exclude-lside-nav pt-3 pl-2">
         <div class="col-auto">
@@ -72,8 +74,39 @@
                     </div>
 
                 </div>
-                <div class="tab-pane fade" id="serial-pane" role="tabpanel">
-                    视频系列添加
+                <div class="tab-pane fade" id="tag-pane" role="tabpanel">
+                    <div class="row mb-4">
+                        <div class="card col-md-12 col-lg-4">
+                            <div class="card-body">
+                                <h5>标签列表</h5>
+                                <div class="tag-list mb-2">
+                                    {{range .TagList}}
+                                    <a class="tag-item" target="_blank" href="/tag?id={{.Id}}">{{.Name}}</a>
+                                    {{end}}
+                                </div>
+                                <br>
+                                <h5>演员空剧列表</h5>
+                                <div class="tag-list mb-2">
+                                    {{range .ActorNoVideoList}}
+                                    <a class="tag-item" target="_blank" href="/tag?id={{.Id}}">[{{.Id}}] {{.Name}}</a>
+                                    {{end}}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card col-md-12 col-lg-8">
+                            <div class="card-body">
+                                <h5 class="d-block mr-auto">演员列表</h5>
+                                <div class="col-sm-8 col-lg-4 col-xl-4 mb-2 pl-0"><input class="form-control"
+                                        onclick="select();" type="text" name="" placeholder="输入演员名以筛选"
+                                        id="actor-filter-input"></div>
+                                <div class="tag-list" id="side-list-actor">
+                                    {{range .ActorList}}
+                                    <a class="tag-item" target="_blank" href="/actor?id={{.Id}}">{{.Name}}</a>
+                                    {{end}}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="tab-pane fade" id="change-pane" role="tabpanel">
                     待修改内容
@@ -82,8 +115,9 @@
                     <div class="card mb-3 shadow-sm">
                         <div class="card-body d-flex">
                             <div class="btn-box d-flex flex-column">
-                            <button class="btn btn-outline-primary px-4 mb-3" onclick="VideoCoverSpider()">开始爬取</button>
-                            <button class="btn btn-outline-primary px-4">暂停爬取</button>
+                                <button class="btn btn-outline-primary px-4 mb-3"
+                                    onclick="VideoCoverSpider()">开始爬取</button>
+                                <button class="btn btn-outline-primary px-4">暂停爬取</button>
 
                             </div>
                             <div class="ml-5">
@@ -97,12 +131,32 @@
                         <h6>爬取结果</h6>
                     </div>
                 </div>
+                <div class="tab-pane fade" id="video-control-pane" role="tabpanel">
+                    <div class="card-deck">
+                        <div class="card col-lg-4 col-xl-3 col-md-6">
+                            <div class="card-body">
+                                <h5>设置空时长</h5>
+                                <button class="btn btn-outline-primary px-4 mb-3" onclick="ajaxFunc('/video.json?action=duration', 'POST', {})">开始设置</button>
+                            </div>
+                        </div>
+                        <div class="card col-lg-4 col-md-6">
+                            <div class="card-body">
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
             </div>
         </div>
     </main>
     <script src="/static/lib/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" crossorigin="anonymous"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" crossorigin="anonymous"></script> -->
+    <!-- <script src="/static/lib/bootstrap-4.6.2-dist/js/" crossorigin="anonymous"></script> -->
     <script src="/static/lib/bootstrap-4.6.2-dist/js/bootstrap.min.js"></script>
+    <script src="/static/lib/bs-custom-file-input.min.js"></script>
+    <script src="/static/lib/video.js/video.min.js"></script>
+    <script src="/static/lib/video.js/videojs.hotkeys.min.js"></script>
+    <script src="/static/lib/video.js/videojs.theaterMode.js"></script>
     <script src="/static/js/all.js"></script>
 </body>
 

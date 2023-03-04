@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"myzone/mzutils"
@@ -43,18 +44,19 @@ type Video struct {
 }
 
 type VideoPlay struct {
-	Id           int       `json:"id"`
-	Title        string    `json:"title"`
-	Cover        string    `json:"cover" orm:"default('')"`
-	Path         string    `json:"path"`
-	Duration     string    `json:"duration" orm:"default('00:00:00')"`
-	Actors       []Actor   `json:"actors" orm:"-"`
-	RelateVideos []Video   `json:"relateVideos"`
-	Tags         []Tag     `json:"tags" orm:"-"`
-	TimeNodes    []float64 `json:"timenodes"`
-	Collect      int       `json:"collect" orm:"default(0)"`
-	View         int       `json:"view" orm:"default(0)"`
-	Pubtime      string    `json:"pubtime"`
+	Id           int          `json:"id"`
+	Title        string       `json:"title"`
+	Cover        string       `json:"cover" orm:"default('')"`
+	Path         string       `json:"path"`
+	Duration     string       `json:"duration" orm:"default('00:00:00')"`
+	Actors       []Actor      `json:"actors" orm:"-"`
+	RelateVideos []Video      `json:"relateVideos"`
+	Tags         []Tag        `json:"tags" orm:"-"`
+	TimeNodes    []float64    `json:"timenodes"`
+	Collect      int          `json:"collect" orm:"default(0)"`
+	View         int          `json:"view" orm:"default(0)"`
+	Screenshots  []Screenshot `json:"screenshoots"`
+	Pubtime      string       `json:"pubtime"`
 }
 
 type VideoRecommendRecord struct {
@@ -70,8 +72,6 @@ const (
 	VSORT_COLLECT          int = 3
 	VIDEO_REALTE_THRESHOLD     = 8 // video play relate video maximum number
 
-	VIDEO_CATERGORY_DEFAULT int = 0
-	VIDEO_CATERGORY_ALL     int = 101
 	VIDEO_CATERGORY_COLLECT int = 102
 
 	VIDEO_LIST_LIMIT_MAX     int = 9999
@@ -128,9 +128,9 @@ func (this Video) GetVideoList(sort int, limit, page int, categoryid ...int) Res
 	videos := []Video{}
 	seter := Orm.QueryTable(this.TableName()).Filter("state", VALID)
 
-	if len(categoryid) != 0 && categoryid[0] != VIDEO_CATERGORY_ALL {
+	if len(categoryid) != 0 && categoryid[0] != CATEGORY_ALL {
 		switch categoryid[0] {
-		case VIDEO_CATERGORY_DEFAULT:
+		case CATEGORY_DEFAULT:
 			seter = seter.Filter("categoryid__in", categoryid)
 		case VIDEO_CATERGORY_COLLECT:
 			seter = seter.Filter("collect__gt", 0)
@@ -298,6 +298,16 @@ func (this Video) GetVideoPlayInfo(id int) RespData {
 	// }
 	json.Unmarshal([]byte(video.Timenode), &(vplay.TimeNodes))
 	vplay.RelateVideos = varr
+
+	shList := []Screenshot{}
+	for _, sc := range ScreenshootList {
+		if !strings.HasPrefix(sc.Title, fmt.Sprintf("[%d]", id)) {
+			continue
+		}
+		shList = append(shList, sc)
+	}
+	vplay.Screenshots = shList
+
 	resp.Code = SUCCESS
 	resp.Msg = "获取视频播放信息成功！"
 	resp.Data = vplay
@@ -307,9 +317,39 @@ func (this Video) GetVideoPlayInfo(id int) RespData {
 // 获取推荐列表
 //
 //	@return [RespData] RespData.Data = RecommendVideoList
-func (this Video) GetRecommendList() RespData {
+func (this Video) GetRecommendList(date string, refresh bool) RespData {
 	resp := NewRespData()
 	log.Println("[VIDEO LIST] get video recommended list...")
+	recRecord := VideoRecommendRecord{}
+	videos := []Video{}
+	if refresh {
+		idRawlist := []int{}
+		idlist := []int{}
+		if _, err := Orm.Raw("SELECT id FROM video where state != 1").QueryRows(&idRawlist); err != nil {
+			log.Println("read table video id list failed:", err)
+			return *resp
+		}
+		videoCount := len(idRawlist)
+		for _, v := range idRawlist {
+			if recRecord.RecommendMap[v] < recRecord.Threshold {
+				idlist = append(idlist, v)
+			}
+		}
+		for i := 0; i < VIDEO_RECOMMEND_LIMIT; {
+			idx := mzutils.RandomInt(videoCount)
+			idlist = append(idlist, idRawlist[idx])
+			i++
+		}
+		Orm.QueryTable(this.TableName()).Filter("id__in", idlist).All(&videos)
+		for i := range videos {
+			this.setVideoActorTag(&videos[i])
+			videos[i].CategoryTitle = CategoryIdMTitle[videos[i].Categoryid]
+		}
+		resp.Code = SUCCESS
+		resp.Data = videos
+		return *resp
+	}
+
 	var jsonfile *os.File
 	var fileExist bool
 	var err error
@@ -319,8 +359,6 @@ func (this Video) GetRecommendList() RespData {
 			return *resp
 		}
 	}
-	recRecord := VideoRecommendRecord{}
-	videos := []Video{}
 
 	// 读取 video recommend json file
 	if bytes, err := ioutil.ReadFile(recommendJsonPath); err != nil {
@@ -329,8 +367,6 @@ func (this Video) GetRecommendList() RespData {
 	} else {
 		json.Unmarshal(bytes, &recRecord)
 	}
-
-	nowdate := mzutils.NowDate()
 	if recRecord.Threshold == 0 {
 		recRecord.Threshold = 1
 	}
@@ -338,6 +374,15 @@ func (this Video) GetRecommendList() RespData {
 	if recRecord.DateMap == nil {
 		recRecord.DateMap = make(map[string][]int)
 		recRecord.RecommendMap = map[int]int{}
+	}
+	nowdate := mzutils.NowDate()
+	if date != "" {
+		nowdate = date
+		if _, ok := recRecord.DateMap[nowdate]; !ok {
+			resp.Msg = fmt.Sprintf("日期[%s]未找到视频推荐列表", date)
+			log.Println(resp.Msg)
+			return *resp
+		}
 	}
 	if _, ok := recRecord.DateMap[nowdate]; !ok {
 		recRecord.DateMap[nowdate] = []int{}
@@ -365,7 +410,7 @@ func (this Video) GetRecommendList() RespData {
 			recRecord.RecommendMap[idlist[idx]] = recTimes + 1
 			i++
 		}
-		if videoCount < 3*VIDEO_RECOMMEND_LIMIT {
+		if videoCount < 2*VIDEO_RECOMMEND_LIMIT {
 			recRecord.Threshold++
 		}
 	}
@@ -380,7 +425,6 @@ func (this Video) GetRecommendList() RespData {
 			return *resp
 		}
 	}
-
 	bytes, _ := json.Marshal(recRecord)
 	jsonfile.Write(bytes)
 	defer jsonfile.Close()
@@ -433,11 +477,11 @@ func (m Video) Update(video *Video, cols ...string) RespData {
 	resp := NewRespData()
 
 	if video.Title != "" {
-		vd := &Video{Id: video.Id}
-		Orm.Read(vd)
-		if vd.Title != video.Title {
-			prepath := vd.Path
-			newpath := strings.Replace(prepath, vd.Title, video.Title, -1)
+		rawv := &Video{Id: video.Id}
+		Orm.Read(rawv)
+		if rawv.Title != video.Title && rawv.Path != video.Path {
+			prepath := rawv.Path
+			newpath := strings.Replace(prepath, rawv.Title, video.Title, -1)
 			if err := os.Rename("."+prepath, "."+newpath); err == nil {
 				video.Path = newpath
 			} else {
@@ -477,7 +521,7 @@ func (m Video) Delete(id int) RespData {
 	}
 	video.Path = strings.Replace(video.Path, "片库", "删除", -1)
 	video.State = INVALID
-	*resp = video.Update(&video, "state")
+	*resp = video.Update(&video, "state", "path")
 	return *resp
 }
 
@@ -508,7 +552,7 @@ func (m Video) Collecting(id int) RespData {
 //	@param  id [int]
 //	@return [*]
 func (m Video) AddTimeNode(id int, time float64) RespData {
-	log.Println("[VIDEO TIMENODE] ID[", id, "] TIME=", time)
+	log.Println("[VIDEO TIMENODE] ID[", id, "] ADD TIME=", time)
 	resp := NewRespData()
 	video := &Video{Id: id}
 	if err := Orm.Read(video); err != nil {
@@ -524,12 +568,52 @@ func (m Video) AddTimeNode(id int, time float64) RespData {
 			return *resp
 		}
 	}
+	for _, t := range timenodes {
+		if int64(t) == int64(time) {
+			resp.Msg = "时间结点已存在，添加失败!"
+			return *resp
+		}
+	}
 	timenodes = append(timenodes, time)
 	bytes, _ := json.Marshal(timenodes)
 	video.Timenode = string(bytes)
 	*resp = video.Update(video, "timenode")
 	if resp.Code == SUCCESS {
 		resp.Msg = "添加时间结点成功！"
+	}
+	return *resp
+}
+
+func (m Video) DeleteTimeNode(id int, time float64) RespData {
+	log.Println("[VIDEO TIMENODE] ID[", id, "] DEL TIME=", time)
+	resp := NewRespData()
+	video := &Video{Id: id}
+	if err := Orm.Read(video); err != nil {
+		resp.Msg = fmt.Sprint("Not Found Video By ID:", id)
+		log.Println(resp.Msg, err)
+		return *resp
+	}
+	timenodes := []float64{}
+	if video.Timenode != "" {
+		if err := json.Unmarshal([]byte(video.Timenode), &timenodes); err != nil {
+			resp.Msg = fmt.Sprint("Unmarshal video timenode failed:", err)
+			log.Println(resp.Msg)
+			return *resp
+		}
+	}
+	timeCpy := []float64{}
+	for _, t := range timenodes {
+		if int64(t) == int64(time) {
+			continue
+		} else {
+			timeCpy = append(timeCpy, t)
+		}
+	}
+	bytes, _ := json.Marshal(timeCpy)
+	video.Timenode = string(bytes)
+	*resp = video.Update(video, "timenode")
+	if resp.Code == SUCCESS {
+		resp.Msg = "删除时间结点成功！"
 	}
 	return *resp
 }
@@ -713,12 +797,12 @@ func JavpornCoverDownUp(id int, url string) RespData {
 // 添加本地视频文件
 func addLocalVideo() {
 	upvPreffix := "[VIDEO ADD LOCAL]"
-	res, err := ioutil.ReadDir(videoUpdatePath)
+	files, err := ioutil.ReadDir(videoUpdatePath)
 	firstLog := true
 	if err != nil {
-		log.Println("[VIDEO] get directory failed:", err)
+		log.Println("get directory failed:", err)
 	}
-	for _, fi := range res {
+	for _, fi := range files {
 		if !fi.IsDir() {
 			ext := strings.ToLower(filepath.Ext(fi.Name()))[1:]
 			if ext == "mp4" {
@@ -726,40 +810,76 @@ func addLocalVideo() {
 					log.Println(upvPreffix, "add new video from path:", videoUpdatePath)
 					firstLog = false
 				}
-				name := fi.Name()
-				log.Printf("%s %s [%dMB]\n", upvPreffix, name, fi.Size()/1024/1024)
-				spath := filepath.Join(videoStorePath, name)
-				for res, _ := mzutils.PathExists(".\\" + spath); res; {
-					ext := filepath.Ext(spath)
-					spath = spath[:len(spath)-len(ext)] + "-1" + ext
-				}
-				if err := os.Rename(".\\"+filepath.Join(videoUpdatePath, name), ".\\"+spath); err != nil {
-					log.Println(upvPreffix, "[FILE MOVE] move file", name, "failed ::", err)
-					continue
-				}
-				cmd := exec.Command("cmd")
-				cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: fmt.Sprintf(`/c %s`, fmt.Sprintf("ffmpeg -i ./%s", spath)), HideWindow: true}
-				out, _ := cmd.CombinedOutput()
-				arr := strings.Split(string(out), "\n")
-				duration := ""
-				for _, s := range arr {
-					if strings.HasPrefix(s, "  Duration") {
-						duration = s[12:20]
-						break
-					}
-				}
-				video := Video{
-					Title:    name[:strings.LastIndex(name, ".")],
-					Path:     "\\" + spath,
-					Pubtime:  time.Now().Format("2006-01-02 15:04:05"),
-					Duration: duration,
-				}
-				video.Add(video)
+				editAddKLocalVideo(fi, "")
 			} else {
 				log.Println(upvPreffix, "not mp4 file:", filepath.Join(videoUpdatePath, fi.Name()))
 			}
+		} else {
+			// log.Println("read dir", fi.Name())
+			subdir, err := ioutil.ReadDir(filepath.Join(videoUpdatePath, fi.Name()))
+			if err != nil {
+				log.Println("get directory failed:", err)
+				continue
+			}
+			dirname := fi.Name()
+			for _, vfile := range subdir {
+				ext := strings.ToLower(filepath.Ext(vfile.Name()))[1:]
+				if ext == "mp4" {
+					editAddKLocalVideo(vfile, dirname)
+				}
+			}
 		}
 	}
+}
+
+func editAddKLocalVideo(vfile fs.FileInfo, own string) {
+	upvPreffix := "[VIDEO ADD LOCAL]"
+	fname := vfile.Name()
+	vname := fname[:strings.LastIndex(fname, ".")]
+	log.Printf("%s %s [%dMB]\n", upvPreffix, fname, vfile.Size()/1024/1024)
+	storepath := filepath.Join(videoStorePath, fname)
+	if own != "" {
+		for i := 1; ; i++ {
+			ext := strings.ToLower(filepath.Ext(vfile.Name()))[1:]
+			vname = fmt.Sprintf("%s-%d.%s", own, i, ext)
+			storepath = filepath.Join(videoStorePath, vname)
+			if res, _ := mzutils.PathExists(".\\" + storepath); !res {
+				break
+			}
+		}
+	} else if res, _ := mzutils.PathExists(".\\" + storepath); res {
+		log.Printf("PATH[%s] is existed. add video[%s] failed", storepath, fname)
+		return
+	}
+	// move video file to storepath
+	if err := os.Rename(".\\"+filepath.Join(videoUpdatePath, own, fname), ".\\"+storepath); err != nil {
+		log.Println(upvPreffix, "[FILE MOVE] move file", fname, "failed ::", err)
+		return
+	}
+	// get video duration
+	cmd := exec.Command("cmd")
+	cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: fmt.Sprintf(`/c %s`, fmt.Sprintf("ffmpeg -i \"./%s\"", storepath)), HideWindow: true}
+	out, _ := cmd.CombinedOutput()
+	arr := strings.Split(string(out), "\n")
+	if len(arr) < 4 {
+		log.Println("get video duration failed.")
+		log.Println(string(out))
+	}
+	duration := ""
+	for _, s := range arr {
+		if strings.HasPrefix(s, "  Duration") {
+			duration = s[12:20]
+			break
+		}
+	}
+	log.Printf("[VIDEO DURATION] PATH[%s] DURATION[%s]", storepath, duration)
+	video := Video{
+		Title:    vname,
+		Path:     "\\" + storepath,
+		Pubtime:  time.Now().Format("2006-01-02 15:04:05"),
+		Duration: duration,
+	}
+	video.Add(video)
 }
 
 func (this Video) SetDuration() {
@@ -779,6 +899,7 @@ func (this Video) SetDuration() {
 			}
 		}
 		if v.Duration == "" {
+			log.Printf("GET VIDEO[%d][%s] duration failed:\n%v", v.Id, v.Title, string(out))
 			continue
 		}
 		log.Printf("[%s] %s", v.Title, v.Duration)

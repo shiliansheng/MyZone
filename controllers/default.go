@@ -9,6 +9,7 @@ import (
 	"myzone/views"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	beego "github.com/beego/beego/v2/server/web"
@@ -28,7 +29,7 @@ func (c *MainController) Get() {
 	c.Data["SpiderLastAddtime"] = spider.GetLastAddtime()
 	c.Data["HotVideos"] = video.GetVideoList(models.VSORT_HOT, models.VIDEO_LIST_LIMIT_HOME, 1).Data
 	c.Data["UpdateVideos"] = video.GetVideoList(models.VSORT_UPDATE, models.VIDEO_LIST_LIMIT_HOME, 1).Data
-	c.Data["RecommendVideo"] = video.GetRecommendList().Data
+	c.Data["RecommendVideo"] = video.GetRecommendList("", false).Data
 	c.TplName = "home.html"
 }
 
@@ -80,10 +81,23 @@ func (c *MainController) Video() {
 						}
 					}
 				}
-			case "time":
+			case "duration":
+				new(models.Video).SetDuration()
+			case "timeadd":
 				id := mzutils.Atoi(c.GetString("id"))
 				time, _ := c.GetFloat("time")
 				resp = new(models.Video).AddTimeNode(id, time)
+			case "timedel":
+				id := mzutils.Atoi(c.GetString("id"))
+				time, _ := c.GetFloat("time")
+				resp = new(models.Video).DeleteTimeNode(id, time)
+			case "recommendlist":
+				aim := c.GetString("aim")
+				if aim == "refresh" {
+					resp = new(models.Video).GetRecommendList("", true)
+				} else {
+					resp = new(models.Video).GetRecommendList(c.GetString("date"), false)
+				}
 			default:
 				video := tempv.Get(id).Data.(models.Video)
 				category := mzutils.Atoi(c.GetString("category"))
@@ -109,7 +123,7 @@ func (c *MainController) Video() {
 			category = models.VIDEO_CATERGORY_COLLECT
 			limit = models.VIDEO_LIST_LIMIT_COLLECT
 		} else if caterStr == "all" {
-			category = models.VIDEO_CATERGORY_ALL
+			category = models.CATEGORY_ALL
 		}
 		page := mzutils.Atoi(c.GetString("page"))
 		// limit := mzutils.Atoi(c.GetString("limit"))
@@ -129,6 +143,9 @@ func (c *MainController) Video() {
 func (c *MainController) Manage() {
 	c.Data["Module"] = "manage"
 	c.Data["ModuleArr"] = models.ModuleValueArr
+	c.Data["ActorList"] = new(models.Actor).GetActorList().Data
+	c.Data["ActorNoVideoList"] = new(models.Actor).GetNoVideoActor().Data
+	c.Data["TagList"] = new(models.Tag).GetTagList().Data
 	c.TplName = "manage.html"
 }
 
@@ -324,6 +341,85 @@ func (c *MainController) Tag() {
 	}
 }
 
+func (c *MainController) Picture() {
+	ext := c.Ctx.Input.Param(":ext")
+	if ext == "json" {
+
+	} else {
+		category := c.Ctx.Input.Param(":category")
+		switch category {
+		case "screenshot":
+		}
+		c.Data["Screenshots"] = models.GetScreenshotList().Data
+
+		c.TplName = "picture.html"
+	}
+}
+
+func (c *MainController) Record() {
+	ext := c.Ctx.Input.Param(":ext")
+	if ext == "json" {
+		var resp models.RespData
+		method := c.Ctx.Request.Method
+		switch method {
+		case "GET":
+			action := c.GetString("action")
+			id := mzutils.Atoi(c.GetString("id"))
+			switch action {
+			case "id":
+				resp = new(models.Record).Get(id)
+			case "category":
+				resp = new(models.Record).GetRecordList(models.STATE_DEFAULT, id)
+			}
+		case "POST":
+			action := c.GetString("action")
+			switch action {
+			case "add":
+				title := c.GetString("title")
+				category := mzutils.Atoi(c.GetString("category"))
+				detail := c.GetString("detail")
+				content := c.GetString("content")
+				topOn := c.GetString("top")
+				top := models.INVALID
+				if topOn == "on" {
+					top = models.VALID
+				}
+				resp = new(models.Record).Add(category, top, title, detail, content)
+			case "edit":
+				topOn := c.GetString("top")
+				top := models.INVALID
+				if topOn == "on" {
+					top = models.VALID
+				}
+				content := c.GetString("content")
+				content = strings.ReplaceAll(content, "\n", "<br/>")
+				content = strings.ReplaceAll(content, " ", "&ensp;")
+				rec := &models.Record{
+					Id:       mzutils.Atoi(c.GetString("id")),
+					Title:    c.GetString("title"),
+					Category: mzutils.Atoi(c.GetString("category")),
+					Detail:   c.GetString("detail"),
+					Content:  content,
+					Top:      top,
+				}
+				resp = new(models.Record).Update(rec, "top", "title", "detail", "content", "category")
+			}
+		case "DELETE":
+		}
+		c.Data["json"] = resp
+		c.ServeJSON()
+
+	} else {
+		// category := c.Ctx.Input.Param(":category")
+		// switch category {
+		// case "screenshot":
+		// }
+		c.Data["Categorys"] = new(models.Category).GetCategoryList(models.MODULE_RECORD).Data
+		c.Data["Records"] = new(models.Record).GetRecordList(models.STATE_DEFAULT, models.CATEGORY_DEFAULT).Data
+		c.TplName = "record.html"
+	}
+}
+
 func (c *MainController) Downloadfile() {
 	ext := c.Ctx.Input.Param(":ext")
 	if ext == "json" {
@@ -336,6 +432,14 @@ func (c *MainController) Downloadfile() {
 			log.Println(resp.Msg, err)
 		} else {
 			*resp = models.DownloadFile(fbelong, &file, handeler)
+			if fbelong == "screenshoot" && resp.Code == models.SUCCESS {
+				sc := models.Screenshot{
+					Path: string(resp.Msg),
+				}
+				sc.Title = sc.Path[strings.Index(sc.Path, "/"):strings.LastIndex(sc.Path, ".")]
+				sc.Time = strings.Split(sc.Title, "]")[3]
+				models.ScreenshootList = append(models.ScreenshootList, sc)
+			}
 		}
 		c.Data["json"] = *resp
 		c.ServeJSON()

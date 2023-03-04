@@ -3,6 +3,9 @@ package views
 import "fmt"
 
 func SetPager(baselink, module string, count, limit, page int) string {
+	if count <= limit {
+		return ""
+	}
 	var (
 		pageCnt   int    = count / limit
 		pageStr   string = ""

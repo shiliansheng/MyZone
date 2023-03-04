@@ -35,6 +35,10 @@
                 </div>
                 <div class="video-operate-container">
                     <div class="video-operate-kit-list kit-list">
+                        <div class="kit-item" onclick="addVideoTimeNode()"><i class="bi bi-plus-circle"></i></div>
+                        <div class="kit-item" onclick="addVideoTimeNode('delete')"><i class="bi bi-dash-circle"></i></div>
+                        <div class="kit-item" onclick="changeVideoTime(-5)"><i class="bi bi-arrow-counterclockwise"></i></div>
+                        <div class="kit-item" onclick="changeVideoTime(5)"><i class="bi bi-arrow-clockwise"></i></div>
                         <div class="kit-item" onclick="collectVideo()"><i class="bi bi-heart"></i></div>
                         <div class="kit-item" onclick="shootVideo()"><i class="bi bi-camera"></i></div>
                     </div>
@@ -81,6 +85,12 @@
             </li>
             <li class="nav-item" data-n="spider">
                 <a class="nav-link" href="/spider">爬虫</a>
+            </li>
+            <li class="nav-item" data-n="picture">
+                <a class="nav-link" href="/picture">图片</a>
+            </li>
+            <li class="nav-item" data-n="record">
+                <a class="nav-link" href="/record">记录</a>
             </li>
             <li class="nav-item" data-n="manage">
                 <a class="nav-link" href="/manage">管理</a>
