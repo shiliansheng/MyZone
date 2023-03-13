@@ -334,6 +334,11 @@ data {
 	display: inline-block;
 	background-color: #000;
 	color: #fff;
-	padding: 0 3px;
+	padding: 0 4px;
 	margin: 0 2px;
+	border-radius: 4px;
+}
+
+.table {
+	height: fit-content;
 }

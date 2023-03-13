@@ -47,7 +47,7 @@
                                 <tr>
                                     <th scope="col">ID</th>
                                     <th scope="col">名称</th>
-                                    <th scope="col" class="th-link">链接&emsp;<a onclick="openAllLink()">打开全部链接</a></th>
+                                    <th scope="col" class="th-link">链接&emsp;<a onclick="openAllLink('sht')">打开全部链接</a></th>
                                     <th scope="col" class="th-number">访问数</th>
                                     <th scope="col" class="th-datetime">爬取时间</th>
                                 </tr>
@@ -68,8 +68,45 @@
                         </ul>
                     </div>
                 </div>
-                <div class="spider-wrap">
-                    
+                <div class="spider-wrap" id="2048-wrap">
+                    <div class="wrap-header">
+                        <div class="wrap-title">2048核基地</div>
+                        <div class="list-control">
+                            <input class="form-control" type="text" name="filter">
+                            <select class="custom-select" name="typeid" id="sht-typeid">
+                                <option value="0" selected>选择类型ID...</option>
+                                <option value="4">亚洲无码</option>
+                                <option value="15">国内原创</option>
+                            </select>
+                            <button class="btn btn-outline-primary" onclick="get2048SpiderList(1)" type="button">查询</button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th scope="col">ID</th>
+                                    <th scope="col">名称</th>
+                                    <th scope="col" class="th-link">链接&emsp;<a onclick="openAllLink('2048')">打开全部链接</a></th>
+                                    <th scope="col" class="th-datetime">上传时间</th>
+                                    <th scope="col" class="th-datetime">爬取时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{range .List2048}}
+                                <tr>
+                                    <td>{{.Id}}</td>
+                                    <td>{{.Title}}</td>
+                                    <td><a href="{{.Url}}" target="_blank">点击链接跳转</a></td>
+                                    <td>{{.Pubtime}}</td>
+                                    <td>{{.Addtime}}</td>
+                                </tr>
+                                {{end}}
+                            </tbody>
+                        </table>
+                        <ul class="pagination table-page">
+                        </ul>
+                    </div>
                 </div>
             </div>
         </main>
@@ -79,7 +116,8 @@
     <script src="/static/lib/bootstrap-4.6.2-dist/js/bootstrap.min.js"></script>
     <script src="/static/js/all.js"></script>
     <script>
-        setSpiderTablePage('#sht-wrap .table-page', {{.ShtListCount }}, 1)
+        setSpiderTablePage('#sht-wrap .table-page', {{.ShtListCount }}, 1, 'Sht')
+        setSpiderTablePage('#2048-wrap .table-page', {{.List2048Count }}, 1, '2048')
     </script>
 </body>
 

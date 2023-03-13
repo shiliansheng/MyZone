@@ -19,6 +19,21 @@ func (Actor) TableName() string {
 	return "actor"
 }
 
+func (m Actor) Get(id int) RespData {
+	log.Println("[GET ACTOR] ID:", id)
+	resp := NewRespData()
+	actor := Actor{Id: id}
+	if err := Orm.Read(&actor); err != nil {
+		resp.Msg = fmt.Sprintf("获取演员[%d]信息失败!", id)
+		log.Println(resp.Msg, err)
+		return *resp
+	}
+	resp.Data = actor
+	resp.Code = SUCCESS
+	resp.Msg = "获取演员信息成功!"
+	return *resp
+}
+
 // 获取Actor List
 //
 //	@param  ids [...string] string类型id数组
@@ -103,8 +118,7 @@ func (m Actor) GetActorId(name string) int {
 	return actor.Id
 }
 
-
-func (this Actor) GetNoVideoActor() RespData{
+func (this Actor) GetNoVideoActor() RespData {
 	log.Println("[GET NO VIDEO ACTOR LIST]")
 	resp := NewRespData()
 	actors := []Actor{}
@@ -118,6 +132,38 @@ func (this Actor) GetNoVideoActor() RespData{
 		}
 	}
 	resp.Data = novActors
+	resp.Code = SUCCESS
+	return *resp
+}
+
+func (m Actor) Update(actor *Actor, cols ...string) RespData {
+	log.Println("[ACTOR UPDATE]", *actor, " cols:", cols)
+	resp := NewRespData()
+
+	if actor.Name == "" {
+		resp.Msg = "更新名称为空，更新失败："
+	}
+	if _, err := Orm.Update(actor, cols...); err != nil {
+		resp.Msg = "update actor failed"
+		log.Println(resp.Msg, err)
+	} else {
+		resp.Msg = "更新成功！"
+		resp.Data = actor.Name
+		resp.Code = SUCCESS
+	}
+	return *resp
+}
+
+func (m Actor) Delete(id int) RespData {
+	log.Println("[ACTOR DELETE] ID:", id)
+	resp := NewRespData()
+	actor := Actor{Id: id}
+	if _, err := Orm.Delete(&actor); err != nil {
+		resp.Msg = fmt.Sprintf("删除演员[%d]失败!", id)
+		log.Println(resp.Msg, err)
+		return *resp
+	}
+	resp.Msg = fmt.Sprintf("删除演员[%d]成功!", id)
 	resp.Code = SUCCESS
 	return *resp
 }

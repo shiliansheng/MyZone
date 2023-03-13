@@ -94,7 +94,7 @@ func init() {
 	}
 
 	// 注册模型 new Model()
-	orm.RegisterModel(new(Video), new(Category), new(Actor), new(Tag), new(Spider), new(Record))
+	orm.RegisterModel(new(Video), new(Category), new(Actor), new(Tag), new(Spider), new(Record), new(Book))
 
 	Orm = orm.NewOrm()
 

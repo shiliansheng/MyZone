@@ -197,9 +197,12 @@ func (c *MainController) Spider() {
 		c.Data["json"] = resp
 		c.ServeJSON()
 	} else {
-		resp = new(models.Spider).GetSpiderList(1, models.SPIDER_TABLE_LIMIT, models.SPIDER_MODULE_SHT, models.SHT_SECTION_DEFAULT, models.SHT_TYPE_DEFAILT)
+		resp = new(models.Spider).GetSpiderList(1, models.SPIDER_TABLE_LIMIT, models.SPIDER_MODULE_SHT, models.SECTION_DEFAULT, models.TYPE_DEFAILT)
 		c.Data["ShtList"] = resp.Data
 		c.Data["ShtListCount"] = resp.Count
+		resp2 := new(models.Spider).GetSpiderList(1, models.SPIDER_TABLE_LIMIT, models.SPIDER_MODULE_2048, models.SECTION_DEFAULT, models.TYPE_DEFAILT)
+		c.Data["List2048"] = resp2.Data
+		c.Data["List2048Count"] = resp2.Count
 		c.TplName = "spider/spider.html"
 	}
 }
@@ -230,6 +233,75 @@ func (c *MainController) SpiderSht() {
 		}
 	} else {
 		c.TplName = "spider/sehuatang.html"
+	}
+}
+
+func (c *MainController) Spider2048() {
+	ext := c.Ctx.Input.Param(":ext")
+	if ext == "json" {
+		ws, err := websocket.Upgrade(c.Ctx.ResponseWriter, c.Ctx.Request, nil, 1024, 1024)
+		if _, ok := err.(websocket.HandshakeError); ok {
+			http.Error(c.Ctx.ResponseWriter, "Not a websocket handshake", 400)
+			return
+		} else if err != nil {
+			log.Println("Cannot setup WebSocket connection:", err)
+			return
+		}
+		typeid := mzutils.Atoi(c.GetString("typeid"))
+		day := mzutils.Atoi(c.GetString("day"))
+		go new(models.Spider).Spider2048(typeid, day)
+		for {
+			select {
+			case msg := <-models.SpiderMsgChan:
+				bytes, _ := json.Marshal(msg)
+				if err := ws.WriteMessage(websocket.TextMessage, bytes); err != nil {
+					log.Println("send message [", msg.Code, msg.Type, msg.Msg, "] failed:", err)
+				}
+			}
+		}
+	} else {
+		c.TplName = "spider/2048.html"
+	}
+}
+
+func (c *MainController) SpiderUaa() {
+	ext := c.Ctx.Input.Param(":ext")
+	if ext == "json" {
+		ws, err := websocket.Upgrade(c.Ctx.ResponseWriter, c.Ctx.Request, nil, 1024, 1024)
+		if _, ok := err.(websocket.HandshakeError); ok {
+			http.Error(c.Ctx.ResponseWriter, "Not a websocket handshake", 400)
+			return
+		} else if err != nil {
+			log.Println("Cannot setup WebSocket connection:", err)
+			return
+		}
+		nids := c.GetString("nids")
+		nids = strings.TrimSpace(nids)
+		nidarr := strings.Split(nids, " ")
+		go new(models.Spider).SpiderUaa(nidarr)
+		for {
+			select {
+			case msg := <-models.SpiderMsgChan:
+				bytes, _ := json.Marshal(msg)
+				if err := ws.WriteMessage(websocket.TextMessage, bytes); err != nil {
+					log.Println("send message [", msg.Code, msg.Type, msg.Msg, "] failed:", err)
+					ws, err = websocket.Upgrade(c.Ctx.ResponseWriter, c.Ctx.Request, nil, 1024, 1024)
+					if _, ok := err.(websocket.HandshakeError); ok {
+						http.Error(c.Ctx.ResponseWriter, "Not a websocket handshake", 400)
+						return
+					} else if err != nil {
+						log.Println("Cannot setup WebSocket connection:", err)
+						return
+					}
+					if err := ws.WriteMessage(websocket.TextMessage, bytes); err != nil {
+						log.Println("send message [", msg.Code, msg.Type, msg.Msg, "] failed:", err)
+					}
+				}
+			}
+		}
+	} else {
+		c.Data["BookList"] = new(models.Book).GetBookList().Data
+		c.TplName = "spider/uaa.html"
 	}
 }
 
@@ -295,7 +367,8 @@ func (c *MainController) Tag() {
 		method := c.Ctx.Request.Method
 		switch method {
 		case "GET":
-
+			id := mzutils.Atoi(c.GetString("id"))
+			resp = new(models.Actor).Get(id)
 		case "POST":
 			action := c.GetString("action")
 			switch action {
@@ -308,10 +381,32 @@ func (c *MainController) Tag() {
 				case "tag":
 					resp = new(models.Tag).Add(name)
 				}
-			case "tag":
-
+			case "edit":
+				obj := c.GetString("obj")
+				id := mzutils.Atoi(c.GetString("id"))
+				name := c.GetString("name")
+				switch obj {
+				case "actor":
+					resp = new(models.Actor).Update(&models.Actor{
+						Id:   id,
+						Name: name,
+					}, "name")
+				case "tag":
+					resp = new(models.Tag).Update(&models.Tag{
+						Id:   id,
+						Name: name,
+					}, "name")
+				}
 			}
 		case "DELETE":
+			obj := c.GetString("obj")
+			id := mzutils.Atoi(c.GetString("id"))
+			switch obj {
+			case "actor":
+				resp = new(models.Actor).Delete(id)
+			case "tag":
+				resp = new(models.Tag).Delete(id)
+			}
 		}
 		c.Data["json"] = resp
 		c.ServeJSON()

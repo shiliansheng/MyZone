@@ -19,6 +19,8 @@ func init() {
 	beego.Router("/search", &controllers.MainController{}, "*:Tag")
 	beego.Router("/spider", &controllers.MainController{}, "*:Spider")
 	beego.Router("/spider/sht", &controllers.MainController{}, "*:SpiderSht")
+	beego.Router("/spider/2048", &controllers.MainController{}, "*:Spider2048")
+	beego.Router("/spider/uaa", &controllers.MainController{}, "*:SpiderUaa")
 	beego.Router("/spidervinfo", &controllers.MainController{}, "*:Spidervinfo")
 	beego.Router("/spidervideocover", &controllers.MainController{}, "*:Spidervideocover")
 	beego.Router("/downloadfile", &controllers.MainController{}, "*:Downloadfile")

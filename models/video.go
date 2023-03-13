@@ -414,7 +414,7 @@ func (this Video) GetRecommendList(date string, refresh bool) RespData {
 			recRecord.Threshold++
 		}
 	}
-	Orm.QueryTable(this.TableName()).Filter("id__in", recRecord.DateMap[nowdate]).All(&videos)
+	Orm.QueryTable(this.TableName()).Filter("state", VALID).Filter("id__in", recRecord.DateMap[nowdate]).All(&videos)
 	for i := range videos {
 		this.setVideoActorTag(&videos[i])
 		videos[i].CategoryTitle = CategoryIdMTitle[videos[i].Categoryid]
@@ -479,9 +479,11 @@ func (m Video) Update(video *Video, cols ...string) RespData {
 	if video.Title != "" {
 		rawv := &Video{Id: video.Id}
 		Orm.Read(rawv)
-		if rawv.Title != video.Title && rawv.Path != video.Path {
+		rawTitle := rawv.Path[strings.LastIndex(rawv.Path, "\\") + 1:strings.LastIndex(rawv.Path, ".")]
+		if video.Title != rawTitle && video.Path == rawv.Path {
 			prepath := rawv.Path
-			newpath := strings.Replace(prepath, rawv.Title, video.Title, -1)
+			newpath := strings.Replace(prepath, rawTitle, video.Title, -1)
+			log.Println("need to change path:", prepath, "-->", newpath)
 			if err := os.Rename("."+prepath, "."+newpath); err == nil {
 				video.Path = newpath
 			} else {

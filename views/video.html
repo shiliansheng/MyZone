@@ -226,13 +226,13 @@
             <h5>标签列表</h5>
             <div class="tag-list mb-2">
                 {{range .TagList}}
-                <a class="tag-item" target="_blank" href="/tag?id={{.Id}}">{{.Name}}</a>
+                <div class="tag-item"><a target="_blank" href="/tag?id={{.Id}}">{{.Name}}</a></div>
                 {{end}}
             </div>
             <div class="d-flex mb-1"><h5 class="d-block mr-auto">演员列表</h5><input class="form-control small-input" onclick="select();" type="text" name="" id="actor-filter-input"></div>
             <div class="tag-list" id="side-list-actor">
                 {{range .ActorList}}
-                <a class="tag-item" target="_blank" href="/actor?id={{.Id}}">{{.Name}}</a>
+                <div class="tag-item"><a target="_blank" href="/actor?id={{.Id}}">{{.Name}}</a></div>
                 {{end}}
             </div>
         </div>

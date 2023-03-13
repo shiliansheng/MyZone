@@ -15,7 +15,7 @@
 	margin-bottom: 5px;
 }
 
-.video-list-container .list-title .list-kits{
+.video-list-container .list-title .list-kits {
 	display: flex;
 	gap: 10px;
 }
@@ -36,7 +36,10 @@
 	overflow: hidden;
 }
 
-.video-list .video-item:hover {
+.video-item {
+	height: fit-content;
+}
+.video-item:hover {
 	box-shadow: 0 0.125rem 0.25rem #ff82a9;
 }
 
@@ -500,6 +503,7 @@
 	border-right: 2px solid #00000036;
 	overflow-y: auto;
 	justify-content: space-between;
+	align-content: baseline;
 	background-color: rgba(255, 255, 255, 0.5);
 	width: -webkit-fill-available;
 	flex-grow: 4;
@@ -608,10 +612,10 @@
 	.video-item
 	.video-cover
 	.video-category {
-		top: 2px;
-		bottom: unset;
-		left: 0;
-	}
+	top: 2px;
+	bottom: unset;
+	left: 0;
+}
 
 .large-modal .my-modal-dialog {
 	width: 100vw !important;
@@ -625,10 +629,22 @@
 	height: 100%;
 }
 
+.large-modal .my-modal-dialog .modal-content .modal-body {
+	display: flex;
+}
+:root {
+	/* large model video player side pane width */
+	--lvp-side-width: 248px;
+}
+
 .large-modal .my-modal-dialog .modal-content .video-player-container {
 	width: 100%;
-	height: calc(100% - 125px);
-	max-height: calc(100% - 125px);
+	/* height: calc(100% - 125px);
+	max-height: calc(100% - 125px); */
+	width: calc(100% - var(--lvp-side-width));
+	max-width: calc(100% - var(--lvp-side-width));
+	height: 100%;
+	max-height: 100%;
 }
 
 .large-modal
@@ -648,15 +664,40 @@
 }
 
 .large-modal .my-modal-dialog .modal-content .video-operate-container {
-	max-height: 125px;
+	max-height: 100%;
+	height: 100%;
+	display: block;
+}
+
+.large-modal .my-modal-dialog .modal-content .video-operate-container .video-list-brief {
+	width: var(--lvp-side-width);
+	height:calc(65% - 42px);
+	max-height: calc(65% - 42px);
+	margin-top: 42px;
+	border: none;
+	/* justify-content: space-evenly; */
+	grid-template-columns: repeat(auto-fill, 115px);
+	padding: 2px;
+	overflow-y: auto;
+}
+.large-modal .video-operate-container .video-list-brief .video-item .video-cover{
+	width: unset;
+	height: 90px;
+	row-gap: 3px;
 }
 
 .large-modal .video-operate-container .video-play-right-wrap {
-	width: 510px;
+	width: var(--lvp-side-width);
+	height: calc(35% - 7px);
+	max-height: calc(35% - 7px);
+	margin-top: 7px;
+	overflow-y: auto;
 }
 
 .large-modal .video-operate-container .screenshoot-list {
-	max-height: 125px;
+	/* max-height: 125px; */
+	height: 100%;
+	max-height: 100%;
 }
 
 .modal-dialog-centered {
@@ -715,6 +756,7 @@
 	margin-right: 1rem;
 }
 .spider-content .spider-msg-list {
+	font-family: consolas, 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
 	display: flex;
 	flex-direction: column;
 	background-color: #23272e;
@@ -724,7 +766,7 @@
 	overflow-y: auto;
 	flex: auto;
 	font-size: 14px;
-	padding: 5px;
+	padding: 5px 2px;
 	border-radius: 2px;
 	transition: all 0.3s ease;
 }
@@ -735,28 +777,31 @@
 
 .spider-content .spider-msg-list .msg-item {
 	padding: 2px;
-	line-height: 1.5;
-	color: #eea;
-	border-bottom: 1px solid #eea;
+	line-height: 1.3;
+	color: #b6b9b0;
+	/* border-bottom: 1px solid #eea; */
 	transition: all 0.2s ease;
 }
 
-.spider-content .spider-msg-list .msg-item.info,
+/* .spider-content .spider-msg-list .msg-item.info,
 .spider-content .spider-msg-list .msg-item.warn,
 .spider-content .spider-msg-list .msg-item.error,
 .spider-content .spider-msg-list .msg-item.info {
 	color: #000;
 	background-color: #78c0a8;
+} */
+.spider-content .spider-msg-list .msg-item.info {
+	color: #91efff;
 }
 .spider-content .spider-msg-list .msg-item.warn {
-	background-color: #fcebb6;
+	color: #ffd14e;
 }
 .spider-content .spider-msg-list .msg-item.error {
-	background-color: #f1ac9d;
+	color: #fd9696;
 }
 .spider-content .spider-msg-list .msg-item:hover {
-	background-color: #ffffff;
-	color: #123;
+	background-color: #343842;
+	/* color: #123; */
 }
 
 @media screen and (max-width: 900px) {
@@ -854,6 +899,7 @@
 }
 
 .spider-page .spider-overview {
+	display: flex;
 	padding: 7px 5px;
 	margin-bottom: 15px;
 	font-size: 17px;
@@ -1257,7 +1303,7 @@
 	transition: all 0.3s ease;
 }
 
-.record-add-form textarea {
+.small-textarea {
 	font-size: 14px;
 	line-height: 1.3;
 	resize: none;
@@ -1279,4 +1325,26 @@ input[name="record-show"]:checked ~ footer {
 input[name="record-show"]:checked ~ footer .record-add-form .form-toggle i {
 	display: inline-block;
 	transform: rotate(180deg);
+}
+
+.data-result .spider-result {
+	justify-content: space-between;
+	gap: 20px;
+}
+.data-result .spider-result .data-overview,
+.data-result .spider-result .result-view {
+	width: 100%;
+	flex: none;
+}
+
+@media screen and (min-width: 1080px) {
+	.data-result .spider-result {
+		display: flex;
+	}
+	.data-result .spider-result .data-overview {
+		max-width: 640px;
+	}
+	.data-result .spider-result .result-view {
+		flex: auto;
+	}
 }

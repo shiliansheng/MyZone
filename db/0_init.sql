@@ -120,3 +120,14 @@ CREATE TABLE `record`(
     `state` int NOT NULL DEFAULT '0' COMMENT'0:valid,1:invalid',
     PRIMARY KEY(id)
 )ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT COMMENT="记录表";
+
+DROP TABLE IF EXISTS `book`;
+CREATE TABLE `book`(
+    `id`       varchar(32) UNIQUE NOT NULL,
+	`title`    varchar(64) NOT NULL DEFAULT '',
+	`author`    varchar(32) NOT NULL DEFAULT '',
+	`brief`    varchar(1024) DEFAULT '',
+    `chaptercount` int,
+	`spidertime`  varchar(32) DEFAULT '',
+    PRIMARY KEY(id)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT COMMENT="小说表";

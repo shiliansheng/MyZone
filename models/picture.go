@@ -35,7 +35,7 @@ func SetScreenshotList(list *[]Screenshot) {
 		time := strings.Split(ftitle, "]")[2]
 		*list = append(*list, Screenshot{
 			Title: ftitle[:strings.LastIndex(ftitle, ".")],
-			Path:  "\\" + filepath.Join(screenshotPath, ftitle),
+			Path:  "/" + filepath.Join(screenshotPath, ftitle),
 			Time:  time[:strings.LastIndex(time, ".")],
 		})
 	}
