@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/beego/beego/v2 v2.0.7
-	github.com/chromedp/cdproto v0.0.0-20230201081901-5f7573a87050
+	github.com/chromedp/cdproto v0.0.0-20230316232129-6d655b62387e
 	github.com/chromedp/chromedp v0.8.7
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/gocolly/colly v1.2.0

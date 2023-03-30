@@ -222,6 +222,7 @@ func (c *MainController) SpiderSht() {
 		typeid := mzutils.Atoi(c.GetString("typeid"))
 		day := mzutils.Atoi(c.GetString("day"))
 		go new(models.Spider).SpiderSht(section, typeid, day)
+		end := false
 		for {
 			select {
 			case msg := <-models.SpiderMsgChan:
@@ -229,6 +230,16 @@ func (c *MainController) SpiderSht() {
 				if err := ws.WriteMessage(websocket.TextMessage, bytes); err != nil {
 					log.Println("send message [", msg.Code, msg.Type, msg.Msg, "] failed:", err)
 				}
+				if msg.Type == models.SPIDER_DONE {
+					end = true
+					break
+				}
+			default:
+				// 没有数据，继续等待
+				time.Sleep(time.Millisecond * 100)
+			}
+			if end {
+				break
 			}
 		}
 	} else {
@@ -250,6 +261,7 @@ func (c *MainController) Spider2048() {
 		typeid := mzutils.Atoi(c.GetString("typeid"))
 		day := mzutils.Atoi(c.GetString("day"))
 		go new(models.Spider).Spider2048(typeid, day)
+		var end bool = false
 		for {
 			select {
 			case msg := <-models.SpiderMsgChan:
@@ -257,6 +269,16 @@ func (c *MainController) Spider2048() {
 				if err := ws.WriteMessage(websocket.TextMessage, bytes); err != nil {
 					log.Println("send message [", msg.Code, msg.Type, msg.Msg, "] failed:", err)
 				}
+				if msg.Type == models.SPIDER_DONE {
+					end = true
+					break
+				}
+			default:
+				// 没有数据，继续等待
+				time.Sleep(time.Millisecond * 100)
+			}
+			if end {
+				break
 			}
 		}
 	} else {
@@ -487,8 +509,8 @@ func (c *MainController) Record() {
 					top = models.VALID
 				}
 				content := c.GetString("content")
-				content = strings.ReplaceAll(content, "\n", "<br/>")
-				content = strings.ReplaceAll(content, " ", "&ensp;")
+				// content = strings.ReplaceAll(content, "\n", "<br/>")
+				// content = strings.ReplaceAll(content, " ", "&ensp;")
 				rec := &models.Record{
 					Id:       mzutils.Atoi(c.GetString("id")),
 					Title:    c.GetString("title"),
@@ -498,6 +520,7 @@ func (c *MainController) Record() {
 					Top:      top,
 				}
 				resp = new(models.Record).Update(rec, "top", "title", "detail", "content", "category")
+				resp.Data = rec
 			}
 		case "DELETE":
 		}
@@ -533,7 +556,7 @@ func (c *MainController) Downloadfile() {
 				}
 				sc.Title = sc.Path[strings.Index(sc.Path, "/"):strings.LastIndex(sc.Path, ".")]
 				sc.Time = strings.Split(sc.Title, "]")[3]
-				models.ScreenshootList = append(models.ScreenshootList, sc)
+				models.ScreenshotList = append(models.ScreenshotList, sc)
 			}
 		}
 		c.Data["json"] = *resp

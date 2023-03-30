@@ -15,7 +15,17 @@ var $videoPlayControl = `<video src="/static/video/青梅竹马.mp4" controls id
     screenshootIdx = 0,
     screenhootMapFile = new Map(),
     spiderLimit = 10,
-    spiderPageThreshold = 10;;
+    spiderPageThreshold = 10,
+    markdownShotObj = {
+        htmlDecode: "style,script,iframe",  // you can filter tags decode
+        emoji: false,
+        taskList: false,
+        tex: false,  // 默认不解析
+        flowChart: false,  // 默认不解析
+        sequenceDiagram: false,  // 默认不解析
+        codeFold: true,
+    },
+    recordEditor;
 
 function ajaxFunc(url, type, data, success) {
     $.ajax({
@@ -156,6 +166,28 @@ $(function () {
             else setRecordList(res)
         })
     })
+    recordEditor = editormd('record-editor', {
+        codeFold: true,
+        toolbar: false,     //关闭工具栏
+        watch: false,       // 关闭实时预览
+        path: "/static/lib/editor.md/lib/",
+
+    })
+    var $recordlist = $('.record-list .record-item .record-content');
+    for (let i = 0; i < $recordlist.length; ++i) {
+        let id = $recordlist.eq(i).attr('id');
+        editormd.markdownToHTML(id, markdownShotObj);
+        // editormd.markdownToHTML(id, {
+        //     htmlDecode: "style,script,iframe",  // you can filter tags decode
+        //     emoji: false,
+        //     taskList: false,
+        //     tex: false,  // 默认不解析
+        //     flowChart: false,  // 默认不解析
+        //     sequenceDiagram: false,  // 默认不解析
+        // });
+    }
+
+
 })
 
 /****************************************
@@ -165,35 +197,22 @@ $(function () {
 *****************************************/
 
 function getVideoRecommendList(aim) {
-    let nowdate = new Date().toLocaleDateString().replaceAll("/", "-"),
-        dataDate = $('#video-recommend-list').attr('data-d'),
-        date = nowdate;
+    let date = getFormatDateString(new Date()),
+        dataDate = $('#video-recommend-list').attr('data-d');
     if (dataDate == "") {
-        dataDate = nowdate;
+        dataDate = date;
     }
-    if (dataDate == nowdate && aim == "post") {
+    if (dataDate == date && aim == "post") {
         return
     }
-    let t = new Date(dataDate);
-    switch (aim) {
-        case 'pre':
-            t.setDate(t.getDate() - 1)
-            date = t.toLocaleDateString().replaceAll("/", "-");
-            break;
-        case 'post':
-            t.setDate(t.getDate() + 1)
-            date = t.toLocaleDateString().replaceAll("/", "-");
-            break;
-        case 'refresh':
-            break;
+    date = new Date(dataDate);
+    let aimMap = {
+        'pre': -1,
+        'post': 1,
+        'refresh': 0,
     }
-    dataDate = date
-    let strarr = date.split('-');
-    for (let i = 1; i < 3; i++) {
-        let num = parseInt(strarr[i])
-        if (num <= 9) strarr[i] = '0' + num;
-    }
-    date = strarr[0] + '-' + strarr[1] + '-' + strarr[2]
+    date.setDate(date.getDate() + aimMap[aim])
+    date = getFormatDateString(date)
     ajaxFunc(`video.json`, "POST", { action: "recommendlist", aim: aim, date: date }, function (res) {
         if (res.code == 0) {
             let $list = $('#video-recommend-list .video-list');
@@ -213,12 +232,12 @@ function getVideoRecommendList(aim) {
                 $list.append(`
                     <div class="video-item">
                         <a onclick="playVideoByModal(${v.id})" class="video-cover">
-                            <img src="${v.cover}" lazyload="on" alt="">
+                            <img src="${v.cover}" lazyload="on" title="">
                             <span class="video-duration">${v.duration}</span>
                             <span class="video-category">${v.actegorytitle}</span>
                         </a>
                         <div class="video-item-info">
-                            <a onclick="playVideoByModal(${v.id})" class="video-title" alt="${v.title}">${v.title}</a>
+                            <a onclick="playVideoByModal(${v.id})" class="video-title" title="${v.title}">${v.title}</a>
                             <div class="video-details">
                                 <i class="bi bi-eye"></i> ${v.view}&ensp;&ensp;<i class="bi bi-heart"></i>
                                 ${v.collect}&emsp;&emsp;<i class="bi bi-clock"></i>
@@ -235,10 +254,21 @@ function getVideoRecommendList(aim) {
             showTipToast(res.msg)
         }
         if (aim != "refresh") {
-            $('#video-recommend-list').attr('data-d', dataDate);
+            $('#video-recommend-list').attr('data-d', date);
             $('#video-recommend-list .list-date').html(date);
         }
     })
+}
+
+function getFormatDateString(date) {
+    return date.getFullYear() + '-' + get2LenNum((date.getMonth() + 1) + '') + '-' + get2LenNum(date.getDate() + '')
+}
+
+function get2LenNum(num) {
+    if (num.length == 1) {
+        return '0' + num;
+    }
+    return num;
 }
 
 var configVideo = function (path, cover, id, timenodes) {
@@ -248,47 +278,99 @@ var configVideo = function (path, cover, id, timenodes) {
     if (player != undefined) player.dispose();
     var captionStr = `<track kind="captions" src="${path.replace("mp4", "vtt")}" srclang="zh" label="中文" default>`
     $("#video-player-modal .video-player-container").html(`<video id="video-player" class="video-js vjs-default-skin vjs-matrix vjs-big-play-centered  vjs-16-9 theater-mode" controls preload="auto">${captionStr}</video>`);
-    player = videojs('video-player', {
-        controls: true,
-        loop: false,
-        poster: cover.replaceAll('\\', "\\\\"),
-        fluid: true,
-        // width: '960px',
-        // height: '540px',
-        liveui: true,
-        sources: [{
-            src: path,
-            type: 'video/mp4'
-        }],
-        notSupportedMessage: '此视频暂无法播放!', // 无法播放时显示的信息
-        playbackRates: [0.5, 1, 2, 4],
-        controlBar: {
-            progressControl: true, // 进度条
-            currentTimeDisplay: true, // 当前时间
-            timeDivider: true, // 时间分割线
-            durationDisplay: true, // 总时间
-            remainingTimeDisplay: false, //剩余时间
-            customControlSpacer: true,
-            playbackRateMenuButton: true,
-            fullscreenToggle: true,         // 全屏按钮
-        },
-        plugins: {},
-    }, function onPlayerReady() {
-        var firstPlay = true;
-        this.on('play', function () {//开始播放
-            playVideoId = id;
-            if (firstPlay) {
-                if (timenodes != undefined) {
-                    for (let node of timenodes) {
-                        var leftPos = node * 100 / this.duration() + '%';
-                        $('.vjs-progress-holder').prepend(`<div class="time-node-item bi bi-geo-alt-fill" onclick="videoPlayJumpTo(${node})" style="left: ${leftPos};"></div>`);
+    player = videojs('video-player',
+        {
+            controls: true,
+            loop: false,
+            poster: cover.replaceAll('\\', "\\\\"),
+            fluid: true,
+            // width: '960px',
+            // height: '540px',
+            liveui: true,
+            sources: [{
+                src: path,
+                type: 'video/mp4'
+            }],
+            notSupportedMessage: '此视频暂无法播放!', // 无法播放时显示的信息
+            playbackRates: [0.5, 1, 2, 4],
+            controlBar: {
+                progressControl: true, // 进度条
+                currentTimeDisplay: true, // 当前时间
+                timeDivider: true, // 时间分割线
+                durationDisplay: true, // 总时间
+                remainingTimeDisplay: false, //剩余时间
+                customControlSpacer: true,
+                playbackRateMenuButton: true,
+                fullscreenToggle: true,         // 全屏按钮
+            },
+            plugins: {},
+        }, function onPlayerReady() {
+            var rotateDeg = 0,
+                zoom;
+            var baseComponent = videojs.getComponent('Component')
+            var videoRotateBtn = videojs.extend(baseComponent, {
+                constructor: function (thisplayer, options) {
+                    baseComponent.apply(this, arguments)
+                    this.on('click', this.clickIcon)
+                },
+                createEl: function () {
+                    var divObj = videojs.dom.createEl('div', {
+                        className: 'vjs-my-components vjs-control vjs-button',
+                        innerHTML: `<button class="bi bi-arrow-repeat vjs-icon-placeholder"></button>`,
+                    })
+                    return divObj
+                },
+                clickIcon: function () {
+                    rotateDeg += 90;
+                    zoom = 1;
+                    if (rotateDeg % 180 != 0) {
+                        zoom = document.querySelector('.video-player-container').offsetHeight / document.querySelector('.video-player-container').offsetWidth;
                     }
+                    if (rotateDeg == 360) {
+                        rotateDeg = 0;
+                    }
+                    player.zoomrotate({
+                        rotate: rotateDeg,
+                        zoom: zoom,
+                    });
                 }
-                ajaxFunc('/video.json', 'POST', { id: id, action: 'play' })
-                firstPlay = false
-            }
+            })
+            var toggleVideo = videojs.extend(baseComponent, {
+                constructor: function (thisplayer, options) {
+                    baseComponent.apply(this, arguments)
+                    this.on('click', this.clickIcon)
+                },
+                createEl: function () {
+                    return videojs.dom.createEl('div', {
+                        className: 'vjs-my-components vjs-control vjs-button',
+                        innerHTML: `<button class="bi bi-plus-circle vjs-icon-placeholder"></button>`,
+                    })
+                },
+                clickIcon: function () {
+                    toggleVideoModal()
+                },
+            })
+
+            videojs.registerComponent('videoRotate', videoRotateBtn)
+            // 找到 controlBar 节点，添加控件
+            player.getChild('controlBar').addChild('videoRotate')
+            videojs.registerComponent('toggleVideo', toggleVideo)
+            player.getChild('controlBar').addChild('toggleVideo')
+            var firstPlay = true;
+            this.on('play', function () {//开始播放
+                playVideoId = id;
+                if (firstPlay) {
+                    if (timenodes != undefined) {
+                        for (let node of timenodes) {
+                            var leftPos = node * 100 / this.duration() + '%';
+                            $('.vjs-progress-holder').prepend(`<div class="time-node-item bi bi-geo-alt-fill" onclick="videoPlayJumpTo(${node})" style="left: ${leftPos};"></div>`);
+                        }
+                    }
+                    ajaxFunc('/video.json', 'POST', { id: id, action: 'play' })
+                    firstPlay = false
+                }
+            });
         });
-    });
     videojs('video-player').ready(function () {
         this.hotkeys({
             volumeStep: 0.05,
@@ -323,7 +405,7 @@ function playVideoByModal(id) {
             }
             for (let sc of res.data.screenshoots) {
                 screenshootIdx++
-                $('.screenshoot-list').append(`<div class="screenshoot-item" data-i="${screenshootIdx}"><img class="click-view-pic" src="${sc.path}" alt=""></div>`)
+                $('.screenshoot-list').append(`<div class="screenshoot-item" data-i="${screenshootIdx}"><img class="click-view-pic" src="${sc.path}" title=""></div>`)
                 $('.click-view-pic').click(function () {
                     $('#picture-view-modal img').attr('src', $(this).attr('src'))
                     $('#picture-view-modal').modal('show')
@@ -654,7 +736,7 @@ function shootVideo() {
     const file = new File([blob], `[${id}][${vname}]${time}.png`, { type: mime });
     screenhootMapFile[screenshootIdx] = file;
     $('.screenshoot-list').append(
-        `<div class="screenshoot-item" data-i="${screenshootIdx}"><img class="click-view-pic" src="${URL.createObjectURL(blob)}" alt="">
+        `<div class="screenshoot-item" data-i="${screenshootIdx}"><img class="click-view-pic" src="${URL.createObjectURL(blob)}" title="">
             <div class="kit-list">
                 <div class="kit-item" onclick="deleteScreenshoot(${screenshootIdx})"><i class="bi bi-trash"></i></div>
                 <div class="kit-item"><i class="bi bi-cloud-download" onclick="downloadScreenshoot(${screenshootIdx})"></i></div>
@@ -706,6 +788,7 @@ function downloadScreenshoot(idx) {
             showTipToast(res.msg)
             if (res.code == 0) {
                 $(`.screenshoot-list .screenshoot-item[data-i=${idx}]`).remove();
+                $(`.screenshoot-list`).prepend(`<div class="screenshoot-item""><img class="click-view-pic" src="${res.data}" title=""></div>`)
             }
         }
     })
@@ -868,10 +951,23 @@ function setSpiderTablePage(idselect, count, page, aim) {
         }
     }
     if (pageSize > 1 && page < pageSize)
-        $pagination.append(`<a class="page-item page-link" onclick="get${aim}SpiderList(${page + 1})">NEXT</a>`);
-    $pagination.append(`<a class="page-item page-link disabled" onclick="get${aim}SpiderList(${pageSize})">共 ${pageSize} 页</a>`)
+        $pagination.append(`<a class="page-item page-link" onclick="get${aim}SpiderList(${parseInt(page) + 1})">NEXT</a>`);
+    $pagination.append(`<a class="page-item page-link disabled jump-item" onclick="jumpToSpiderPage('${idselect}')" data-aim="${aim}" data-maxpage="${pageSize}"><input class="page-min-input" name="page">/${pageSize}</a>`)
 }
 
+function jumpToSpiderPage(pid) {
+    let aim = $(`${pid} .jump-item`).attr('data-aim'),
+        maxpage = $(`${pid} .jump-item`).attr('data-maxpage'),
+        page = $(`${pid} .jump-item input[name=page]`).val();
+    if (page == "" || parseInt(page) > maxpage || parseInt(page) <= 0) {
+        return
+    }
+    if (aim == "Sht") {
+        getShtSpiderList(page)
+    } else if (aim == "2048") {
+        get2048SpiderList(page)
+    }
+}
 
 function openAllLink(aim) {
     var $links = $(`#${aim}-wrap table tbody tr td a`);
@@ -890,7 +986,10 @@ function spiderUaaSubmit() {
         return
     }
     nids = nids.replaceAll('\n', ' ')
-    var socket = new WebSocket(`ws://${window.location.host}/spider/uaa.json?nids=${nids}`);
+    const socket = new WebSocket(`ws://${window.location.host}/spider/uaa.json?nids=${nids}`);
+    socket.onopen = function (event) {
+        console.log('WebSocket 连接已建立');
+    };
     // Message received on the socket
     socket.onmessage = function (event) {
         var data = JSON.parse(event.data);
@@ -949,6 +1048,12 @@ function spiderUaaSubmit() {
         $('#spider-sht .spider-result').scrollTop($('#spider-sht .spider-result').prop("scrollHeight"))
         $msglist.scrollTop($msglist.prop("scrollHeight"))
     };
+    socket.onclose = function (event) {
+        console.log('WebSocket 连接已关闭');
+    };
+    socket.onerror = function (event) {
+        console.error('WebSocket 连接错误');
+    };
 }
 
 function spider2048Submit() {
@@ -960,7 +1065,10 @@ function spider2048Submit() {
         showTipToast("参数不全！")
         return
     }
-    var socket = new WebSocket(`ws://${window.location.host}/spider/2048.json?typeid=${typeid}&day=${day}`);
+    const socket = new WebSocket(`ws://${window.location.host}/spider/2048.json?typeid=${typeid}&day=${day}`);
+    socket.onopen = function (event) {
+        console.log('WebSocket 连接已建立');
+    };
     // Message received on the socket
     socket.onmessage = function (event) {
         var data = JSON.parse(event.data);
@@ -1006,6 +1114,12 @@ function spider2048Submit() {
         $('#spider-2048 .spider-result').scrollTop($('#spider-2048 .spider-result').prop("scrollHeight"))
         $msglist.scrollTop($msglist.prop("scrollHeight"))
     };
+    socket.onclose = function (event) {
+        console.log('WebSocket 连接已关闭');
+    };
+    socket.onerror = function (event) {
+        console.error('WebSocket 连接错误');
+    };
 }
 /****************************************
  *                                      *
@@ -1014,16 +1128,20 @@ function spider2048Submit() {
 *****************************************/
 
 function getRecord(obj) {
-    return `<div class="record-item">
+    let str = `<div class="record-item" data-i="${obj.id}">
                 <input type="checkbox" name="content-show" id="record-${obj.id}">
                 <div class="item-kit">
-                    <label for="record-${obj.id}" class="kit-item content-toggle bi bi-caret-down"></label>
-                    <div class="bi bi-pencil kit-item" onclick="editRecord(${obj.id})"></div>
+                    <label for="record-${obj.id}" class="kit-item content-toggle bi bi-caret-down-square"></label>
+                    <div class="bi bi-pencil-fill kit-item" onclick="editRecord(${obj.id})"></div>
+                    <div class="bi bi-clipboard-check-fill kit-item" onclick="copyRecord(${obj.id})"></div>
                 </div>
                 <div class="record-title">${obj.title}</div>
                 <div class="record-detail">${obj.detail}</div>
-                <div class="record-content">${obj.content}</div>
+                <div class="record-content" id="record-content-${obj.id}"><textarea style="display: none;">${obj.content}</textarea></div>
             </div>`
+
+
+    return str;
 }
 
 function setRecordList(res) {
@@ -1031,6 +1149,7 @@ function setRecordList(res) {
     $recList.empty()
     for (let obj of res.data) {
         $recList.append(getRecord(obj))
+        editormd.markdownToHTML(`record-content-${obj.id}`, markdownShotObj);
     }
 }
 
@@ -1050,6 +1169,11 @@ function recordFormSubmit() {
         showTipToast(res.msg)
         if (action == "add" && res.code == 0) {
             $('#record-page .record-list').append(getRecord(res.data))
+            editormd.markdownToHTML(`record-content-${res.data.id}`, markdownShotObj);
+        }
+        if (action == "edit" && res.code == 0) {
+            $(`#record-content-${id}`).html(`<textarea style="display: none;">${res.data.content}</textarea>`)
+            editormd.markdownToHTML(`record-content-${id}`, markdownShotObj);
         }
         if (res.code == 0) {
             document.getElementById('record-form').reset();
@@ -1068,7 +1192,16 @@ function editRecord(id) {
             $('#record-form [name=id]').val(res.data.id)
             $('#record-form [name=title]').val(res.data.title)
             $('#record-form [name=detail]').val(res.data.detail)
+            $('#record-form [name=content]').html(res.data.content)
             $('#record-form [name=content]').val(res.data.content)
+            recordEditor = editormd('record-editor', {
+                markdown: res.data.content,
+                codeFold: true,
+                toolbar: false,     //关闭工具栏
+                watch: false,       // 关闭实时预览
+                path: "/static/lib/editor.md/lib/",
+
+            })
             $(`#record-form [name=category][value=${res.data.category}]`).attr("checked", "checked")
             $('#record-form [name=top]').attr('checked', res.data.top)
             $('#record-page [name=record-show]').prop("checked", true)
@@ -1076,6 +1209,22 @@ function editRecord(id) {
             showTipToast(res.msg)
         }
     })
+}
+
+// copy content
+// selector: .record-list .record-item[data-i=${id}] .record-content
+function copyRecord(id) {
+    // 选择指定元素并获取其文本内容
+    let content = $(`.record-list .record-item[data-i=${id}] .record-content`).text();
+    // 创建一个临时的textarea元素并将文本内容赋值给它
+    var $temp = $('<textarea>');
+    $('body').append($temp);
+    $temp.val(content).select();
+    // 调用浏览器的复制命令将文本复制到剪贴板中
+    document.execCommand('copy');
+    // 将临时元素删除
+    $temp.remove();
+    showTipToast('成功拷贝到剪贴板中！');
 }
 
 function editTag(type, id) {

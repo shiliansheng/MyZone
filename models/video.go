@@ -298,9 +298,8 @@ func (this Video) GetVideoPlayInfo(id int) RespData {
 	// }
 	json.Unmarshal([]byte(video.Timenode), &(vplay.TimeNodes))
 	vplay.RelateVideos = varr
-
 	shList := []Screenshot{}
-	for _, sc := range ScreenshootList {
+	for _, sc := range ScreenshotList {
 		if !strings.HasPrefix(sc.Title, fmt.Sprintf("[%d]", id)) {
 			continue
 		}
@@ -479,7 +478,7 @@ func (m Video) Update(video *Video, cols ...string) RespData {
 	if video.Title != "" {
 		rawv := &Video{Id: video.Id}
 		Orm.Read(rawv)
-		rawTitle := rawv.Path[strings.LastIndex(rawv.Path, "\\") + 1:strings.LastIndex(rawv.Path, ".")]
+		rawTitle := rawv.Path[strings.LastIndex(rawv.Path, "\\")+1 : strings.LastIndex(rawv.Path, ".")]
 		if video.Title != rawTitle && video.Path == rawv.Path {
 			prepath := rawv.Path
 			newpath := strings.Replace(prepath, rawTitle, video.Title, -1)

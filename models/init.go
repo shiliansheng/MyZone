@@ -18,7 +18,7 @@ var (
 	videoUpdatePath  string
 	videoStorePath   string
 	CategoryIdMTitle map[int]string
-	ScreenshootList  []Screenshot
+	ScreenshotList   []Screenshot = make([]Screenshot, 0)
 )
 
 const (
@@ -99,8 +99,7 @@ func init() {
 	Orm = orm.NewOrm()
 
 	new(Category).SetMap()
-
-	SetScreenshotList(&ScreenshootList)
+	SetScreenshotList(&ScreenshotList)
 	// new(Video).SetDuration()
 }
 

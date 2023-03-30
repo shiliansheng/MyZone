@@ -181,6 +181,66 @@ if ($('#checkedboxId').is('checked')) {
 }
 ```
 
+### 编写`websocket`
+
+```js
+// 建立 WebSocket 连接
+const socket = new WebSocket('ws://example.com/socket');
+
+// 连接建立时的回调函数
+socket.onopen = function(event) {
+  console.log('WebSocket 连接已建立');
+  
+  // 发送消息
+  socket.send('Hello, Server!');
+};
+
+// 接收消息时的回调函数
+socket.onmessage = function(event) {
+  console.log('接收到服务器消息：', event.data);
+  
+  // 关闭连接
+  socket.close();
+};
+
+// 连接关闭时的回调函数
+socket.onclose = function(event) {
+  console.log('WebSocket 连接已关闭');
+};
+
+// 连接发生错误时的回调函数
+socket.onerror = function(event) {
+  console.error('WebSocket 连接错误');
+};
+
+```
+在上述代码中，首先使用`new WebSocket()`方法建立一个 `WebSocket` 连接，参数为要连接的服务器的 `URL`。连接建立后，可以通过`socket.onopen`方法设置连接建立时的回调函数，并在其中使用`socket.send()`方法发送消息给服务器。
+
+同时，也可以通过`socket.onmessage`方法设置接收消息时的回调函数，并在其中处理从服务器接收到的消息。当连接关闭时，会触发`socket.onclose`回调函数。如果连接出现错误，则会触发`socket.onerror`回调函数。
+
+需要注意的是，由于 WebSocket API 并非所有浏览器都支持，因此在使用 WebSocket 时需要先检测浏览器是否支持该 API。可以使用以下代码进行检测：
+
+```js
+if ('WebSocket' in window) {
+  // 支持 WebSocket
+} else {
+  // 不支持 WebSocket
+}
+```
+
+`send()` 方法仅在连接处于打开状态时才会生效。如果在连接关闭或出现错误时调用该方法，将会抛出异常。因此，可以在调用 `send()` 方法之前先检查 `WebSocket` 连接的状态，例如：
+```js
+if (socket.readyState === WebSocket.OPEN) {
+  // 连接已打开，可以发送消息
+  socket.send('Hello, Server!');
+} else {
+  // 连接未打开，无法发送消息
+  console.error('WebSocket 连接未打开');
+}
+```
+在该代码中，`socket.readyState` 属性用于检查 `WebSocket` 连接的状态。当 `readyState` 的值为 `WebSocket.OPEN` 时，表示连接已打开；否则表示连接未打开，无法发送消息。
+
+
 ## 四、MYSQL
 
 ### 查找排序顺序错乱问题

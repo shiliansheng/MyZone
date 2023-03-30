@@ -19,7 +19,7 @@ const (
 
 func GetScreenshotList() RespData {
 	resp := NewRespData()
-	resp.Data = ScreenshootList
+	resp.Data = ScreenshotList
 	resp.Code = SUCCESS
 	return *resp
 }

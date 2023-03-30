@@ -12,9 +12,11 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 	"github.com/liuzl/gocc"
 )
@@ -116,6 +118,32 @@ func setShtUrl(section, typeid, day int) string {
 	return fmt.Sprintf("%sforum.php?mod=forumdisplay&fid=%d&filter=typeid&typeid=%d&filter=dateline&dateline=%d", BASE_URL_SHT, section, typeid, day*SHT_DETELINE_BASE)
 }
 
+// setcookies returns a task to navigate to a host with the passed cookies set
+// on the network request.
+func setcookies(host string, cookies ...string) chromedp.Tasks {
+	if len(cookies)%2 != 0 {
+		panic("length of cookies must be divisible by 2")
+	}
+	return chromedp.Tasks{
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			// create cookie expiration
+			expr := cdp.TimeSinceEpoch(time.Now().Add(180 * 24 * time.Hour))
+			// add cookies to chrome
+			for i := 0; i < len(cookies); i += 2 {
+				err := network.SetCookie(cookies[i], cookies[i+1]).
+					WithExpires(&expr).
+					WithDomain("https://www.sehuatang.org/").
+					WithHTTPOnly(true).
+					Do(ctx)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}),
+	}
+}
+
 func getPageNum(url string) int {
 	log.Println("[SHT] Get page number [", url, "]")
 	SpiderMsgChan <- SpiderMsg{
@@ -128,6 +156,28 @@ func getPageNum(url string) int {
 
 	var numstr string
 	if err := chromedp.Run(ctx,
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			cookies := []string{
+				"_safe", "vqd37pjm4p5uodq339yzk6b7jdt6oich",
+				"cPNj_2132_atarget", "1",
+				"cPNj_2132_saltkey", "QLnum82q",
+				"cPNj_2132_st_t", "0|1679119862|11fb5a8e69985aa896f0c6b7b2fdb616",
+			}
+			// create cookie expiration
+			expr := cdp.TimeSinceEpoch(time.Now().Add(180 * 24 * time.Hour))
+			// add cookies to chrome
+			for i := 0; i < len(cookies); i += 2 {
+				err := network.SetCookie(cookies[i], cookies[i+1]).
+					WithExpires(&expr).
+					WithDomain("www.sehuatang.org").
+					WithHTTPOnly(true).
+					Do(ctx)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}),
 		chromedp.Navigate(url),
 		chromedp.TextContent(`#fd_page_top label span`, &numstr),
 	); err != nil {
@@ -175,6 +225,28 @@ func (this Spider) SpiderSht(section, typeid, day int) {
 		numNodes := []*cdp.Node{}
 
 		if err := chromedp.Run(ctx,
+			chromedp.ActionFunc(func(ctx context.Context) error {
+				cookies := []string{
+					"_safe", "vqd37pjm4p5uodq339yzk6b7jdt6oich",
+					"cPNj_2132_atarget", "1",
+					"cPNj_2132_saltkey", "QLnum82q",
+					"cPNj_2132_st_t", "0|1679119862|11fb5a8e69985aa896f0c6b7b2fdb616",
+				}
+				// create cookie expiration
+				expr := cdp.TimeSinceEpoch(time.Now().Add(180 * 24 * time.Hour))
+				// add cookies to chrome
+				for i := 0; i < len(cookies); i += 2 {
+					err := network.SetCookie(cookies[i], cookies[i+1]).
+						WithExpires(&expr).
+						WithDomain("www.sehuatang.org").
+						WithHTTPOnly(true).
+						Do(ctx)
+					if err != nil {
+						return err
+					}
+				}
+				return nil
+			}),
 			chromedp.Navigate(pageurl),
 			chromedp.Nodes(`#threadlisttableid .s.xst`, &infoNodes),
 			chromedp.Nodes(`#threadlisttableid .num em`, &numNodes),
@@ -424,7 +496,7 @@ func (this Spider) GetSpiderList(page, limit, mod, section, category int, filter
 	}
 	seter = seter.SetCond(cond)
 	seter = seter.Distinct()
-	seter = seter.OrderBy("-id")
+	seter = seter.OrderBy("-addtime", "-id")
 	count, _ := seter.Count()
 	seter = seter.Limit(limit, (page-1)*limit)
 	if _, err := seter.All(&spiders); err != nil {

@@ -60,12 +60,12 @@
                     {{range .RecommendVideo}}
                     <div class="video-item">
                         <a onclick="playVideoByModal({{.Id}})" class="video-cover">
-                            <img src="{{.Cover}}" lazyload="on" alt="">
+                            <img src="{{.Cover}}" lazyload="on" title="">
                             <span class="video-duration">{{.Duration}}</span>
                             <span class="video-category">{{.CategoryTitle}}</span>
                         </a>
                         <div class="video-item-info">
-                            <a onclick="playVideoByModal({{.Id}})" class="video-title" alt="{{.Title}}">{{.Title}}</a>
+                            <a onclick="playVideoByModal({{.Id}})" class="video-title" title="{{.Title}}">{{.Title}}</a>
                             <div class="video-details">
                                 <i class="bi bi-eye"></i> {{.View}}&ensp;&ensp;<i class="bi bi-heart"></i>
                                 {{.Collect}}&emsp;&emsp;<i class="bi bi-clock"></i>
@@ -90,12 +90,12 @@
                     {{range .HotVideos}}
                     <div class="video-item">
                         <a onclick="playVideoByModal({{.Id}})" class="video-cover">
-                            <img src="{{.Cover}}" lazyload="on" alt="">
+                            <img src="{{.Cover}}" lazyload="on" title="">
                             <span class="video-duration">{{.Duration}}</span>
                             <span class="video-category">{{.CategoryTitle}}</span>
                         </a>
                         <div class="video-item-info">
-                            <a onclick="playVideoByModal({{.Id}})" class="video-title" alt="{{.Title}}">{{.Title}}</a>
+                            <a onclick="playVideoByModal({{.Id}})" class="video-title" title="{{.Title}}">{{.Title}}</a>
                             <div class="video-details">
                                 <i class="bi bi-eye"></i> {{.View}}&ensp;&ensp;<i class="bi bi-heart"></i>
                                 {{.Collect}}&emsp;&emsp;<i class="bi bi-clock"></i>
@@ -120,12 +120,12 @@
                     {{range .UpdateVideos}}
                     <div class="video-item">
                         <a onclick="playVideoByModal({{.Id}})" class="video-cover">
-                            <img src="{{.Cover}}" lazyload="on" alt="">
+                            <img src="{{.Cover}}" lazyload="on" title="">
                             <span class="video-duration">{{.Duration}}</span>
                             <span class="video-category">{{.CategoryTitle}}</span>
                         </a>
                         <div class="video-item-info">
-                            <a onclick="playVideoByModal({{.Id}})" class="video-title" alt="{{.Title}}">{{.Title}}</a>
+                            <a onclick="playVideoByModal({{.Id}})" class="video-title" title="{{.Title}}">{{.Title}}</a>
                             <div class="video-details">
                                 <i class="bi bi-eye"></i> {{.View}}&ensp;&ensp;<i class="bi bi-heart"></i>
                                 {{.Collect}}&emsp;&emsp;<i class="bi bi-clock"></i>
@@ -154,6 +154,7 @@
     <script src="/static/lib/video.js/video.min.js"></script>
     <script src="/static/lib/video.js/videojs.hotkeys.min.js"></script>
     <script src="/static/lib/video.js/videojs.theaterMode.js"></script>
+    <script src="/static/lib/video.js/videojs.zoomrotate.js"></script>
     <script src="/static/js/all.js"></script>
 </body>
 

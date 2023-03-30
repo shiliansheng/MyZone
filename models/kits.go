@@ -8,6 +8,7 @@ import (
 	"myzone/mzutils"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // 下载截图
@@ -53,7 +54,14 @@ func DownloadFile(fileBelong string, file *multipart.File, handeler *multipart.F
 	resp.Data = "/" + storepath
 	storefile.Close()
 	resp.Msg = "<span class=\"bg-info\">下载文件 [ " + handeler.Filename + " ] 成功！</span>"
-
+	if fileBelong == "screenshot" {
+		time := strings.Split(handeler.Filename, "]")[2]
+		ScreenshotList = append(ScreenshotList, Screenshot{
+			Title: handeler.Filename,
+			Path:  "/" + storepath,
+			Time:  time[:strings.LastIndex(time, ".")],
+		})
+	}
 	log.Println("[DOWNLOAD FILE] success:", storepath)
 	return *resp
 }

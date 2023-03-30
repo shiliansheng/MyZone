@@ -342,3 +342,8 @@ data {
 .table {
 	height: fit-content;
 }
+
+.editormd-html-preview code, .editormd-preview-container code,
+.markdown-body code {
+	padding: 0!important;
+}

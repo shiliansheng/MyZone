@@ -9,9 +9,9 @@
     <link rel="stylesheet" href="/static/lib/bootstrap-icons-1.10.3/bootstrap-icons.css">
     <link rel="stylesheet" href="/static/lib/video.js/video-js.min.css" />
     <link rel="stylesheet" href="/static/lib/video.js/videojs.theaterMode.css" />
+    <link rel="stylesheet" href="/static/lib/editor.md/editormd.min.css" />
     <link rel="stylesheet" href="/static/css/init.css">
     <link rel="stylesheet" href="/static/css/all.css">
-
     <title>{{.TagName}}</title>
 </head>
 
@@ -36,15 +36,18 @@
         <main>
             <div class="record-list">
                 {{range .Records}}
-                <div class="record-item">
+                <div class="record-item" data-i="{{.Id}}">
                     <input type="checkbox" name="content-show" id="record-{{.Id}}">
                     <div class="item-kit">
-                        <label for="record-{{.Id}}" class="kit-item content-toggle bi bi-caret-down"></label>
-                        <div class="bi bi-pencil kit-item" onclick="editRecord({{.Id}})"></div>
+                        <label for="record-{{.Id}}" class="kit-item content-toggle bi bi-caret-down-square"></label>
+                        <div class="bi bi-pencil-fill kit-item" onclick="editRecord({{.Id}})"></div>
+                        <div class="bi bi-clipboard-check-fill kit-item" onclick="copyRecord({{.Id}})"></div>
                     </div>
                     <div class="record-title">{{.Title}}</div>
                     <div class="record-detail">{{str2html .Detail}}</div>
-                    <div class="record-content">{{str2html .Content}}</div>
+                    <div class="record-content" id="record-content-{{.Id}}">
+                        <textarea style="display: none;">{{str2html .Content}}</textarea>
+                    </div>
                 </div>
                 {{end}}
             </div>
@@ -52,38 +55,51 @@
         <input type="checkbox" name="record-show" id="form-show-1" hidden>
         <footer>
             <form class="record-add-form pb-1 needs-validation" novalidate id="record-form" onsubmit="return false;">
-                <label for="form-show-1" class="form-toggle">ADD RECORD <i class="bi bi-caret-down"></i></label>
+                <label for="form-show-1" class="form-toggle"><span class="d-inline-block" style="width: 50px;height: 20px;background: #007bff91;border-radius: 10px;box-shadow: 1px 1px 2px #007bff91;"></span></label>
                 <input type="text" hidden name="id" required>
                 <div class="form-group mb-1">
                     <label>记录标题</label>
                     <input type="text" class="form-control" name="title" placeholder="输入记录标题" required>
                 </div>
-                <div class="form-group mb-1">
-                    <label class="d-block">记录分类</label>
-                    <div class="custom-control custom-radio custom-control-inline">
-                        <input type="radio" value="0" id="category-0" name="category" class="custom-control-input" checked="checked">
-                        <label class="custom-control-label" for="category-0">无</label>
+                <div class="form-row">
+                    <div class="form-group col-md-4 mb-1">
+                        <label class="d-block">记录分类</label>
+                        <div class="custom-control custom-radio custom-control-inline">
+                            <input type="radio" value="0" id="category-0" name="category" class="custom-control-input"
+                                checked="checked">
+                            <label class="custom-control-label" for="category-0">无</label>
+                        </div>
+                        {{range .Categorys}}
+                        <div class="custom-control custom-radio custom-control-inline">
+                            <input type="radio" value="{{.Id}}" id="category-{{.Id}}" name="category"
+                                class="custom-control-input">
+                            <label class="custom-control-label" for="category-{{.Id}}">{{.Title}}</label>
+                        </div>
+                        {{end}}
                     </div>
-                    {{range .Categorys}}
-                    <div class="custom-control custom-radio custom-control-inline">
-                        <input type="radio" value="{{.Id}}" id="category-{{.Id}}" name="category" class="custom-control-input">
-                        <label class="custom-control-label" for="category-{{.Id}}">{{.Title}}</label>
+                    <div class="form-group col-md-8 mb-1">
+                        <label>记录描述</label>
+                        <input type="text" class="form-control" name="detail" placeholder="输入记录描述">
                     </div>
-                    {{end}}
                 </div>
-                <div class="form-group mb-1">
-                    <label>记录描述</label>
-                    <input type="text" class="form-control" name="detail" placeholder="输入记录描述">
-                </div>
-                <div class="form-group mb-1">
-                    <label>记录内容</label>
-                    <textarea type="text" rows="10" class="form-control small-textarea" name="content" placeholder="输入记录描述"></textarea>
+                <div class="form-group mb-1" style="width: 100%; height: 320px;">
+                    <label>记录内容</label> <span>
+                        &emsp;工具栏
+                        <a onclick="recordEditor.showToolbar()" class="bi bi-eye-fill"></a>
+                        &emsp;<a onclick="recordEditor.hideToolbar()" class="bi bi-eye-slash-fill"></a>
+                        &emsp;预览:
+                        <a onclick="recordEditor.watch()" class="bi bi-eye-fill"></a></span>
+                        &emsp;<a onclick="recordEditor.unwatch()" class="bi bi-eye-slash-fill"></a></span>
+                    <!-- <textarea type="text" rows="10" class="form-control small-textarea" name="content" placeholder="输入记录描述"></textarea> -->
+                    <div id="record-editor">
+                        <textarea style="display:none;" class="form-control small-textarea" name="content"></textarea>
+                    </div>
                 </div>
                 <div class="custom-control custom-switch mb-2">
                     <input type="checkbox" class="custom-control-input" id="record-set-top" name="top">
                     <label class="custom-control-label" for="record-set-top">置顶</label>
                 </div>
-                <div class="form-group text-center">
+                <div class="form-group text-center mb-1">
                     <button type="submit" class="btn btn-primary" onclick="recordFormSubmit()">提交</button>
                     <button type="reset" class="btn btn-primary">重置</button>
                 </div>
@@ -98,6 +114,14 @@
     <script src="/static/lib/video.js/video.min.js"></script>
     <script src="/static/lib/video.js/videojs.hotkeys.min.js"></script>
     <script src="/static/lib/video.js/videojs.theaterMode.js"></script>
+    <script src="/static/lib/editor.md/editormd.min.js"></script>
+    <script src="/static/lib/editor.md/lib/marked.min.js"></script>
+    <script src="/static/lib/editor.md/lib/prettify.min.js"></script>
+    <script src="/static/lib/editor.md/lib/raphael.min.js"></script>
+    <script src="/static/lib/editor.md/lib/underscore.min.js"></script>
+    <script src="/static/lib/editor.md/lib/sequence-diagram.min.js"></script>
+    <script src="/static/lib/editor.md/lib/flowchart.min.js"></script>
+    <script src="/static/lib/editor.md/lib/jquery.flowchart.min.js"></script>
     <script src="/static/js/all.js"></script>
 </body>
 
