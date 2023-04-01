@@ -13,7 +13,9 @@ import (
 	"math/big"
 	"mime/multipart"
 	"net/http"
+	URL "net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -154,7 +156,13 @@ func DownloadUrlByChromedp(fileBelong, url string) (string, error) {
 	if qmIndex != -1 {
 		url = url[:qmIndex]
 	}
-	storepath := filepath.Join(baseStorePath, fileBelong, UniqueId()+filepath.Ext(url))
+	u, err := URL.Parse(url)
+	if err != nil {
+		fmt.Println("解析URL时发生错误：", err)
+		return "", err
+	}
+	ext := path.Ext(u.Path)
+	storepath := filepath.Join(baseStorePath, fileBelong, UniqueId()+ext)
 	ctx, cancel := chromedp.NewContext(
 		context.Background(),
 		chromedp.WithLogf(log.Printf),

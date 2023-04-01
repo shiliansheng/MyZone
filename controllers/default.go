@@ -27,8 +27,8 @@ func (c *MainController) Get() {
 	c.Data["VideoLastPubtime"] = video.GetLastPubtime()
 	c.Data["AllSpiderCount"] = spider.GetCount()
 	c.Data["SpiderLastAddtime"] = spider.GetLastAddtime()
-	c.Data["HotVideos"] = video.GetVideoList(models.VSORT_HOT, models.VIDEO_LIST_LIMIT_HOME, 1).Data
-	c.Data["UpdateVideos"] = video.GetVideoList(models.VSORT_UPDATE, models.VIDEO_LIST_LIMIT_HOME, 1).Data
+	c.Data["HotVideos"] = video.GetVideoList(models.VSORT_HOT, models.VIDEO_LIST_LIMIT_HOME*2, 1).Data
+	c.Data["UpdateVideos"] = video.GetVideoList(models.VSORT_UPDATE, models.VIDEO_LIST_LIMIT_HOME*2, 1).Data
 	c.Data["RecommendVideo"] = video.GetRecommendList("", false).Data
 	c.TplName = "home.html"
 }
@@ -564,4 +564,38 @@ func (c *MainController) Downloadfile() {
 	} else {
 
 	}
+}
+
+func (c *MainController) Upload() {
+	source := c.Ctx.Input.Param(":source")
+	fbelong := c.GetString("belong")
+	resp := models.NewRespData()
+	switch source {
+	case "web":
+		url := c.GetString("url")
+		if retUrl, err := mzutils.DownloadUrlByChromedp(fbelong, url); err == nil {
+			resp.Data = retUrl
+			resp.Code = models.SUCCESS
+			resp.Msg = "下载图片成功！"
+		} else {
+			resp.Msg = fmt.Sprint("下载图片失败:", err)
+		}
+	case "local":
+		filename := c.GetString("filename")
+		if filename == "" {
+			filename = "file"
+		}
+		log.Println(fbelong, filename)
+		file, handeler, err := c.GetFile(filename)
+		if err != nil {
+			resp.Code = models.ERROR
+			resp.Msg = "get file failed"
+			log.Println(resp.Msg, err)
+		} else {
+			handeler.Filename = mzutils.UniqueId() + filepath.Ext(handeler.Filename)
+			*resp = models.DownloadFile(fbelong, &file, handeler)
+		}
+	}
+	c.Data["json"] = *resp
+	c.ServeJSON()
 }

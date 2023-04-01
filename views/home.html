@@ -56,7 +56,7 @@
                         <span class="kit-item bi bi-chevron-right" onclick="getVideoRecommendList('post')"></span>
                     </div>
                 </div>
-                <div class="video-list justify-content-between">
+                <div class="video-list">
                     {{range .RecommendVideo}}
                     <div class="video-item">
                         <a onclick="playVideoByModal({{.Id}})" class="video-cover">
@@ -86,7 +86,7 @@
             </div>
             <div class="video-list-container my-3 bg-white p-2 pb-3">
                 <h4 class="text-primary"><i class="bi bi-fire"></i> 热门视频</h4>
-                <div class="video-list justify-content-between">
+                <div class="video-list">
                     {{range .HotVideos}}
                     <div class="video-item">
                         <a onclick="playVideoByModal({{.Id}})" class="video-cover">
@@ -116,7 +116,7 @@
             </div>
             <div class="video-list-container my-3 bg-white p-2 pb-3">
                 <h4 class="text-primary"><i class="bi bi-upload"></i> 最近更新</h4>
-                <div class="video-list justify-content-between">
+                <div class="video-list">
                     {{range .UpdateVideos}}
                     <div class="video-item">
                         <a onclick="playVideoByModal({{.Id}})" class="video-cover">

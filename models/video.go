@@ -656,7 +656,7 @@ func JavbusCoverDownUp(id int, url string) RespData {
 	err := chromedp.Run(ctx,
 		chromedp.Navigate(url),
 		chromedp.Nodes(`.container .screencap .bigImage`, &imgNodes),
-		chromedp.Nodes(`#star-div .avatar-box span`, &actorNodes),
+		chromedp.Nodes(`#star-div .avatar-box .photo-frame img`, &actorNodes),
 	)
 	if err != nil {
 		resp.Msg = fmt.Sprintf(" <span class=\"bg-warning\">%s GET FAILED</span> ", url)
@@ -670,7 +670,7 @@ func JavbusCoverDownUp(id int, url string) RespData {
 	video := &Video{Id: id}
 	actorIds := []string{}
 	for _, node := range actorNodes {
-		if resp := new(Actor).Add(node.Children[0].NodeValue); resp.Code != ERROR {
+		if resp := new(Actor).Add(node.AttributeValue("title")); resp.Code != ERROR {
 			actorIds = append(actorIds, fmt.Sprint(resp.Data.(Actor).Id))
 		}
 	}

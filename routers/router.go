@@ -25,6 +25,7 @@ func init() {
 	beego.Router("/spidervideocover", &controllers.MainController{}, "*:Spidervideocover")
 	beego.Router("/downloadfile", &controllers.MainController{}, "*:Downloadfile")
 	beego.Router("/record", &controllers.MainController{}, "*:Record")
+	beego.Router("/upload/?:source", &controllers.MainController{}, "*:Upload")
 	// beego.Router("/picture/:type", &controllers.MainController{}, "*:Picture")
 	// beego.Router("/video/:type", &controllers.MainController{}, "*:Video")
 	// beego.Router("/audio/:type", &controllers.MainController{}, "*:Audio")

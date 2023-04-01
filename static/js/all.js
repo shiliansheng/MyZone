@@ -25,6 +25,22 @@ var $videoPlayControl = `<video src="/static/video/青梅竹马.mp4" controls id
         sequenceDiagram: false,  // 默认不解析
         codeFold: true,
     },
+    editormdEditObj = {
+        width: "100%",
+        height: "100%",
+        codeFold: true,
+        toolbar: true,     //关闭工具栏
+        watch: false,       // 关闭实时预览
+        path: "/static/lib/editor.md/lib/",
+        toolbarIcons: function () {
+            // Or return editormd.toolbarModes[name]; // full, simple, mini
+            // Using "||" set icons align right.
+            return ["undo", "redo", "|", "hr", "del", "ucwords", "uppercase", "lowercase", "|", "preview", "watch", "fullscreen", "|", "image", "table", "datetime", "html-entities", "pagebreak", "search"]
+        },
+        imageUpload: true,
+        imageFormats: ["jpg", "jpeg", "gif", "png", "bmp", "webp"],
+        imageUploadURL: "/upload/local?filename=editormd-image-file&belong=mdfile",
+    },
     recordEditor;
 
 function ajaxFunc(url, type, data, success) {
@@ -166,27 +182,22 @@ $(function () {
             else setRecordList(res)
         })
     })
-    recordEditor = editormd('record-editor', {
-        codeFold: true,
-        toolbar: false,     //关闭工具栏
-        watch: false,       // 关闭实时预览
-        path: "/static/lib/editor.md/lib/",
-
-    })
-    var $recordlist = $('.record-list .record-item .record-content');
-    for (let i = 0; i < $recordlist.length; ++i) {
-        let id = $recordlist.eq(i).attr('id');
-        editormd.markdownToHTML(id, markdownShotObj);
-        // editormd.markdownToHTML(id, {
-        //     htmlDecode: "style,script,iframe",  // you can filter tags decode
-        //     emoji: false,
-        //     taskList: false,
-        //     tex: false,  // 默认不解析
-        //     flowChart: false,  // 默认不解析
-        //     sequenceDiagram: false,  // 默认不解析
-        // });
+    if (activeModule == 'record') {
+        recordEditor = editormd('record-editor', editormdEditObj)
+        var $recordlist = $('.record-list .record-item .record-content');
+        for (let i = 0; i < $recordlist.length; ++i) {
+            let id = $recordlist.eq(i).attr('id');
+            editormd.markdownToHTML(id, markdownShotObj);
+            // editormd.markdownToHTML(id, {
+            //     htmlDecode: "style,script,iframe",  // you can filter tags decode
+            //     emoji: false,
+            //     taskList: false,
+            //     tex: false,  // 默认不解析
+            //     flowChart: false,  // 默认不解析
+            //     sequenceDiagram: false,  // 默认不解析
+            // });
+        }
     }
-
 
 })
 
@@ -1176,6 +1187,7 @@ function recordFormSubmit() {
             editormd.markdownToHTML(`record-content-${id}`, markdownShotObj);
         }
         if (res.code == 0) {
+            recordEditor.clear();
             document.getElementById('record-form').reset();
             $('#record-form').removeClass('was-validated')
 
@@ -1194,14 +1206,7 @@ function editRecord(id) {
             $('#record-form [name=detail]').val(res.data.detail)
             $('#record-form [name=content]').html(res.data.content)
             $('#record-form [name=content]').val(res.data.content)
-            recordEditor = editormd('record-editor', {
-                markdown: res.data.content,
-                codeFold: true,
-                toolbar: false,     //关闭工具栏
-                watch: false,       // 关闭实时预览
-                path: "/static/lib/editor.md/lib/",
-
-            })
+            recordEditor = editormd('record-editor', editormdEditObj)
             $(`#record-form [name=category][value=${res.data.category}]`).attr("checked", "checked")
             $('#record-form [name=top]').attr('checked', res.data.top)
             $('#record-page [name=record-show]').prop("checked", true)
@@ -1263,4 +1268,13 @@ function tagEditSubmit() {
         }
         showTipToast(res.msg)
     })
+}
+
+function toggleScreen(id) {
+    let fullScreenClass = 'full-screen';
+    if ($(`${id}`).hasClass(fullScreenClass)) {
+        $(`${id}`).removeClass(fullScreenClass);
+    } else {
+        $(`${id}`).addClass(fullScreenClass);
+    }
 }
