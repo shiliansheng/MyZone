@@ -90,24 +90,26 @@
                                 alert(imageLang.imageURLEmpty);
                                 return false;
                             }
-                            $.ajax({
-                                url: "/upload/web",
-                                type: "POST",
-                                dataType: "json",
-                                async: false,
-                                data: {
-                                    url: url,
-                                    belong: "mdfile"
-                                },
-                                success: function(res) {
-                                    if (res.code === 0) {
-                                        url = res.data
-                                    } else {
-                                        alert(resp.msg)
-                                        return false;
-                                    }
-                                },
-                            })
+                            if (url.indexOf('http') == 0) {
+                                $.ajax({
+                                    url: "/upload/web",
+                                    type: "POST",
+                                    dataType: "json",
+                                    async: false,
+                                    data: {
+                                        url: url,
+                                        belong: "mdfile"
+                                    },
+                                    success: function(res) {
+                                        if (res.code === 0) {
+                                            url = res.data
+                                        } else {
+                                            alert(resp.msg)
+                                            return false;
+                                        }
+                                    },
+                                })
+                            }
 							var altAttr = (alt !== "") ? " \"" + alt + "\"" : "";
 
                             if (link === "" || link === "http://")

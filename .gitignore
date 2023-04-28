@@ -2,7 +2,9 @@ log/*
 static/pics/
 static/video/
 static/字幕/
+static/图片合集/
 static/picture/
 test/
 docs/actor.txt
 docs/leaked and like.txt
+*.exe

@@ -6,8 +6,7 @@ const STOP = 2,
     SHT_TYPE_A_FC2 = 368,
     SHT_TYPE_A_MCRACK = 672,
     SHT_TYPE_A_LEAKED = 654;
-var $videoPlayControl = `<video src="/static/video/青梅竹马.mp4" controls id="video-player"></video>`,
-    module_default = "home",
+var module_default = "home",
     category_default = 0,
     videoPageLimit = 18,
     playVideoId,
@@ -30,11 +29,9 @@ var $videoPlayControl = `<video src="/static/video/青梅竹马.mp4" controls id
         height: "100%",
         codeFold: true,
         toolbar: true,     //关闭工具栏
-        watch: false,       // 关闭实时预览
+        watch: true,       // 关闭实时预览
         path: "/static/lib/editor.md/lib/",
         toolbarIcons: function () {
-            // Or return editormd.toolbarModes[name]; // full, simple, mini
-            // Using "||" set icons align right.
             return ["undo", "redo", "|", "hr", "del", "ucwords", "uppercase", "lowercase", "|", "preview", "watch", "fullscreen", "|", "image", "table", "datetime", "html-entities", "pagebreak", "search"]
         },
         imageUpload: true,
@@ -1190,7 +1187,6 @@ function recordFormSubmit() {
             recordEditor.clear();
             document.getElementById('record-form').reset();
             $('#record-form').removeClass('was-validated')
-
         }
     })
 }

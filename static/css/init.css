@@ -1,5 +1,45 @@
+@font-face {
+	font-family: "HarmonyOSHans-Regular";
+	font-style: normal;
+	src: url("../font/HarmonyOSHans-Medium.woff2") format("woff2"),
+		url("../font/HarmonyOSHans-Medium.woff") format("woff");
+	font-weight: 700;
+}
+@font-face {
+	font-family: "HarmonyOSHans-Regular";
+	font-style: normal;
+	src: url("../font/HarmonyOSHans-Medium.woff2") format("woff2"),
+		url("../font/HarmonyOSHans-Medium.woff") format("woff");
+	font-weight: 500;
+}
+@font-face {
+	font-family: "HarmonyOSHans-Regular";
+	font-style: normal;
+	src: url("../font/HarmonyOSHans-Medium.woff2") format("woff2"),
+		url("../font/HarmonyOSHans-Medium.woff") format("woff");
+	font-weight: bold;
+}
+@font-face {
+	font-family: "HarmonyOSHans-Regular";
+	font-style: normal;
+	src: url("../font/HarmonyOSHans-Regular.woff2") format("woff2"),
+		url("../font/HarmonyOSHans-Regular.woff") format("woff");
+	font-weight: 400;
+}
+
+@font-face {
+	font-family: "HarmonyOSHans-Regular";
+	font-style: normal;
+	src: url("../font/HarmonyOSHans-Light.woff2") format("woff2");
+	font-weight: 300;
+}
+
 body {
 	background-color: #f5f6fa !important;
+	font-family: HarmonyOSHans,"HarmonyOSHans-Regular", "HarmonyOS Sans SC medium",
+		-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+		Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji",
+		"Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 a {
@@ -198,7 +238,7 @@ nav .navbar-nav .nav-item.active::after {
 
 .video-js .vjs-control-bar {
 	height: 4em;
-	padding-top: .5em;
+	padding-top: 0.5em;
 }
 
 .video-js .vjs-control {
@@ -343,7 +383,8 @@ data {
 	height: fit-content;
 }
 
-.editormd-html-preview code, .editormd-preview-container code,
+.editormd-html-preview code,
+.editormd-preview-container code,
 .markdown-body code {
-	padding: 0!important;
+	padding: 0 !important;
 }
